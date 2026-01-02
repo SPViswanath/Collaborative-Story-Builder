@@ -38,13 +38,24 @@ const Login = async (req,res)=>{
 
         // creates JWT token using jwt.sign()
         const isMatch = await bcrypt.compare(password,user.password);
+        if(!isMatch){
+          return res.status(400).json({message:"Invalid email or password"});
+        }
+
         const token = jwt.sign({userId : user._id},process.env.JWT_SECRET,{expiresIn:"1d"});
 
-        //sends response
-        res.status(200).json({
-            message:"Login Successful",
-            token
-        });
+        //sends response via cookie
+        res.cookie("token", token, {
+          httpOnly: true,
+          sameSite: "strict",
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 24 * 60 * 60 * 1000 // 1 day
+         });
+
+res.status(200).json({
+  message: "Login Successful"
+});
+
     }
     catch(err){
         res.status(500).json({
@@ -88,9 +99,17 @@ const googleLogin = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.status(200).json({
-      token: jwtToken
+    res.cookie("token", jwtToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000
     });
+
+res.status(200).json({
+  message: "Google login successful"
+});
+
 
   } catch (err) {
     res.status(401).json({

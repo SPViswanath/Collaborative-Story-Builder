@@ -23,6 +23,11 @@ const storySchema = new mongoose.Schema(
             },
         ],
 
+        coverImage:{
+            type:String,
+            default:""
+        },
+        
         isPublished: {
             type: Boolean,
             default:false

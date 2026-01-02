@@ -82,10 +82,6 @@ function filter(stories, userId){
     });
 }
 
-// small issue on collaborator while getting results shows
-// collaborators (it should show only when author sees his results)
-
-
 const getMyOngoingStories = async (req, res) => {
     try{
         const stories = await Story.find({
@@ -171,6 +167,30 @@ const publishToggleStory = async (req,res)=>{
     }
 }
 
+// get all published stories
+
+const getPublicPublishedStories = async (req, res) => {
+
+  try {
+    const stories = await Story.find(
+      { isPublished: true },
+      { title: 1, description: 1, coverImage: 1, author: 1, createdAt: 1 }
+    )
+      .populate("author", "name")
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({ stories });
+  } 
+  catch (err) {
+    res.status(500).json({
+      message: "Failed to fetch published stories",
+      error: err.message
+    });
+  }
+
+};
+   
+
 // export story as PDF
 
 const exportStoryPDF = async (req, res) => {
@@ -210,5 +230,6 @@ module.exports = { createStory,
                     getMyOngoingStories,
                     getMyPublishedStories,
                     publishToggleStory,
+                    getPublicPublishedStories,
                     exportStoryPDF
                 };

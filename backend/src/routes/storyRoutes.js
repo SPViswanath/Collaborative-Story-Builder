@@ -1,7 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
-const {createStory, addCollaborator,getMyOngoingStories,getMyPublishedStories, publishToggleStory, exportStoryPDF} = require("../controllers/storyController");
+const {createStory, 
+        addCollaborator, 
+        getMyOngoingStories,
+        getMyPublishedStories, 
+        publishToggleStory, 
+        getPublicPublishedStories, 
+        exportStoryPDF
+    } = require("../controllers/storyController");
 
 router.post("/",authMiddleware,createStory);
 
@@ -14,4 +21,7 @@ router.get("/my/published", authMiddleware, getMyPublishedStories);
 router.patch("/:storyId/publish",authMiddleware,publishToggleStory);
 
 router.get("/:storyId/export/pdf",authMiddleware,exportStoryPDF);
+
+router.get("/published", getPublicPublishedStories);
+
 module.exports = router;
