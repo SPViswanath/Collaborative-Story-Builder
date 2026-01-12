@@ -44,6 +44,7 @@ function Login() {
   const handleGoogleLogin = async (response) => {
     try {
       await googleLogin(response.credential);
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Google login failed");
       console.error(err.message);

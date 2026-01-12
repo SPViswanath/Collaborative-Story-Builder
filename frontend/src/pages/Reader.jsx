@@ -3,19 +3,6 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import { getSidebar, getChapterContent } from "../api/chapterApi";
 
-// shadcn sidebar imports
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton
-} from "../components/ui/sidebar";
-
 function Reader() {
   const { source, id } = useParams(); // internal | external
   const [loading, setLoading] = useState(true);

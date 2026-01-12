@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Story = require("../models/Story");
 const User = require("../models/User");
 const generateStoryPDF = require("../utils/pdfGenerator");
@@ -49,7 +50,9 @@ const addCollaborator = async (req,res)=>{
             });
         }
 
-        if(story.collaborators.includes(userToInvite._id)){
+        if(story.collaborators.some(
+            id=> id.toString() === userToInvite._id.toString()
+        )){
             return res.status(400).json({
                 message:"User aalready a collaborator"
             });
@@ -75,7 +78,7 @@ function filter(stories, userId){
     return stories.map(story =>{
         const storyObj = story.toObject();
 
-        if(storyObj.author.toString()!==userId){
+        if(storyObj.author.toString()!==userId.toString()){
             delete storyObj.collaborators;
         }
         return storyObj;
@@ -84,13 +87,17 @@ function filter(stories, userId){
 
 const getMyOngoingStories = async (req, res) => {
     try{
+        const userObjectId = new mongoose.Types.ObjectId(req.userId);
+
         const stories = await Story.find({
-            isPublished:false,
-            $or:[
-                {author: req.userId},
-                {collaborators: req.userId}
+            isPublished: false,
+            $or: [
+                {author: userObjectId},
+                {
+                    collaborators: userObjectId
+                }
             ]
-        }).sort({updatedAt:-1});
+        }).sort({updatedAt: -1});
 
         const filteredStories = filter(stories, req.userId);
         res.status(200).json({
@@ -108,13 +115,16 @@ const getMyOngoingStories = async (req, res) => {
 
 const getMyPublishedStories = async (req,res)=>{
     try{
+        const userObjectId = new mongoose.Types.ObjectId(req.userId);
+
         const stories = await Story.find({
-            isPublished : true,
-            $or:[
-                {author:req.userId},
-                {collaborators: req.userId}
+            isPublished: true,
+            $or: [
+                { author: userObjectId },
+                { collaborators: userObjectId }
             ]
-        }).sort({updatedAt: -1});
+        }).sort({ updatedAt: -1 });
+
         
         const filteredStories = filter(stories, req.userId);
 

@@ -17,6 +17,19 @@ const signup = async (req, res)=>{
             name, email, password
         });
 
+        const token = jwt.sign(
+          { userId: user._id },
+          process.env.JWT_SECRET,
+          { expiresIn: "1d" }
+        );
+
+        res.cookie("token", token, {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 24 * 60 * 60 * 1000
+        });
+
         res.status(201).json({
             message:"User registered successfully",
             userId:user._id
@@ -33,7 +46,7 @@ const Login = async (req,res)=>{
         const user = await User.findOne({email});
         //checks user is present or not
         if(!user){
-            return res.status(400).json({message:"User not found Invalid email or password"});t
+            return res.status(400).json({message:"User not found Invalid email or password"});
         }
 
         // creates JWT token using jwt.sign()
@@ -47,14 +60,14 @@ const Login = async (req,res)=>{
         //sends response via cookie
         res.cookie("token", token, {
           httpOnly: true,
-          sameSite: "strict",
+          sameSite: "lax",
           secure: process.env.NODE_ENV === "production",
           maxAge: 24 * 60 * 60 * 1000 // 1 day
          });
 
-res.status(200).json({
-  message: "Login Successful"
-});
+        res.status(200).json({
+          message: "Login Successful"
+        });
 
     }
     catch(err){
@@ -101,14 +114,14 @@ const googleLogin = async (req, res) => {
 
     res.cookie("token", jwtToken, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       maxAge: 24 * 60 * 60 * 1000
     });
 
-res.status(200).json({
-  message: "Google login successful"
-});
+    res.status(200).json({
+      message: "Google login successful"
+    });
 
 
   } catch (err) {
@@ -119,5 +132,20 @@ res.status(200).json({
   }
 };
 
+// get the user details even when the react state refreshed
+const getMe = async (req, res) => {
+  const user = await User.findById(req.userId);
 
-module.exports = {signup, Login, googleLogin};
+  if (!user) {
+    return res.status(401).json({
+      message: "User not found"
+    });
+  }
+
+  res.status(200).json({
+    userId: user._id
+  });
+};
+
+
+module.exports = {signup, Login, googleLogin, getMe};
