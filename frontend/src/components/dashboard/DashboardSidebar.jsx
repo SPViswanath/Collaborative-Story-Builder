@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   PlusCircle,
   BookOpen,
@@ -6,29 +5,46 @@ import {
   LayoutDashboard,
   ChevronLeft,
   ChevronRight,
+  X,
+  LogOut,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 function DashboardSidebar({
   active,
   setActive,
   sidebarOpen,
+  collapsed,
+  setCollapsed,
   setSidebarOpen,
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   return (
     <aside
       className={`
-        fixed md:static top-16 left-0 z-50
+        fixed top-16 left-0 z-50
         h-[calc(100vh-4rem)]
         bg-white border-r border-gray-200
-        transform transition-all duration-300 ease-in-out
+        transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0
         ${collapsed ? "w-20" : "w-64"}
         flex flex-col shadow-sm
       `}
     >
+      {/* Mobile close button */}
+      <div className="md:hidden flex items-center justify-end px-3 py-3 border-b">
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="p-2 rounded-md hover:bg-gray-100"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
       {/* Desktop Collapse Toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
@@ -37,94 +53,115 @@ function DashboardSidebar({
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
 
-      <div className="flex-1 overflow-y-auto py-6 flex flex-col gap-6">
-        
+      {/* TOP section (Header + Menu) */}
+      <div className="px-3 pt-6">
         {/* Header / Title */}
-        <div className={`flex items-center px-4 ${collapsed ? "justify-center" : "gap-3"}`}>
-            <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
-                <LayoutDashboard className="h-6 w-6 text-indigo-600" />
-            </div>
-            {!collapsed && (
-                <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap overflow-hidden transition-all duration-200">
-                    Dashboard
-                </h2>
-            )}
+        <div
+          className={`flex items-center px-1 ${
+            collapsed ? "justify-center" : "gap-3"
+          }`}
+        >
+          <div className="p-2 bg-indigo-50 rounded-lg shrink-0">
+            <LayoutDashboard className="h-6 w-6 text-indigo-600" />
+          </div>
+
+          {!collapsed && (
+            <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">
+              Dashboard
+            </h2>
+          )}
         </div>
 
         {/* Navigation Items */}
-        <nav className="space-y-1 px-3">
-          <SidebarButton
-            label="Create a Story"
-            icon={<PlusCircle size={20} />}
-            active={active === "create"}
-            collapsed={collapsed}
+        <nav className="mt-6 space-y-1">
+          <button
             onClick={() => {
               setActive("create");
               setSidebarOpen(false);
             }}
-          />
+            className={`
+              w-full flex items-center
+              ${collapsed ? "justify-center px-2" : "px-3"}
+              py-2.5 rounded-lg transition-all duration-200
+              ${
+                active === "create"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }
+            `}
+          >
+            <PlusCircle size={20} />
+            {!collapsed && (
+              <span className="ml-3 font-medium text-sm">Create a Story</span>
+            )}
+          </button>
 
-          <SidebarButton
-            label="My Ongoing Stories"
-            icon={<BookOpen size={20} />}
-            active={active === "ongoing"}
-            collapsed={collapsed}
+          <button
             onClick={() => {
               setActive("ongoing");
               setSidebarOpen(false);
             }}
-          />
+            className={`
+              w-full flex items-center
+              ${collapsed ? "justify-center px-2" : "px-3"}
+              py-2.5 rounded-lg transition-all duration-200
+              ${
+                active === "ongoing"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }
+            `}
+          >
+            <BookOpen size={20} />
+            {!collapsed && (
+              <span className="ml-3 font-medium text-sm">
+                My Ongoing Stories
+              </span>
+            )}
+          </button>
 
-          <SidebarButton
-            label="My Published Stories"
-            icon={<CheckCircle size={20} />}
-            active={active === "published"}
-            collapsed={collapsed}
+          <button
             onClick={() => {
               setActive("published");
               setSidebarOpen(false);
             }}
-          />
+            className={`
+              w-full flex items-center
+              ${collapsed ? "justify-center px-2" : "px-3"}
+              py-2.5 rounded-lg transition-all duration-200
+              ${
+                active === "published"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }
+            `}
+          >
+            <CheckCircle size={20} />
+            {!collapsed && (
+              <span className="ml-3 font-medium text-sm">
+                My Published Stories
+              </span>
+            )}
+          </button>
         </nav>
+      </div>
+
+      {/* BOTTOM Logout */}
+      <div className="mt-auto px-3 pb-6">
+        <button
+          onClick={async () => {
+            await logout();
+            setSidebarOpen(false);
+            navigate("/login");
+          }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-gray-100 transition font-medium text-slate-700"
+        >
+          <LogOut size={18} />
+          {!collapsed && <span>Logout</span>}
+        </button>
       </div>
     </aside>
   );
 }
-
-function SidebarButton({ label, icon, active, collapsed, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      title={collapsed ? label : ""}
-      className={`
-        group w-full flex items-center
-        ${collapsed ? "justify-center px-2" : "px-3"}
-        py-2.5 rounded-lg
-        transition-all duration-200 ease-in-out
-        ${
-          active
-            ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
-            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-        }
-      `}
-    >
-      <span className={`shrink-0 transition-transform duration-200 ${active ? "" : "group-hover:scale-110"}`}>
-        {icon}
-      </span>
-
-      {!collapsed && (
-        <span
-          className={`
-            ml-3 font-medium text-sm whitespace-nowrap overflow-hidden
-            transition-all duration-200
-          `}
-        >
-          {label}
-        </span>
-      )}
-    </button>
-  );
-}
-
 
 export default DashboardSidebar;

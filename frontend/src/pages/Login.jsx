@@ -96,7 +96,7 @@ function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-black text-white py-2 rounded"
+            className="w-full bg-black text-white py-2 rounded cursor-pointer"
           >
             {loading ? "Please wait..." : isSignup ? "Sign Up" : "Login"}
           </button>
@@ -108,9 +108,9 @@ function Login() {
 
 
         <p className="text-center mt-4 text-sm">
-          {isSignup ? "Already have an account?" : "New user?"}
+          {isSignup ? "Already have an account?" : "Don't have an account?"}
           <button
-            className="ml-1 text-blue-600"
+            className="ml-1 text-blue-600 cursor-pointer"
             onClick={() => setIsSignup(!isSignup)}
           >
             {isSignup ? "Login" : "Sign Up"}

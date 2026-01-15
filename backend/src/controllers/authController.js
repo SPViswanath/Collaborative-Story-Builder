@@ -143,7 +143,9 @@ const getMe = async (req, res) => {
   }
 
   res.status(200).json({
-    userId: user._id
+    userId: user._id,
+    name: user.name,
+    email: user.email
   });
 };
 

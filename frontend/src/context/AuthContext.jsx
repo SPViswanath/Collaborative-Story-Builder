@@ -7,6 +7,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }){
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [user,setUsers] = useState(null);
 
     // getting auth status from backend while the state var
     // gets refreshed when page reloads
@@ -16,9 +17,10 @@ export function AuthProvider({ children }){
         async function checkAuth() {
             try {
             await axios.get("http://localhost:5000/api/auth/me", { withCredentials: true });
-            if (isMounted) setIsAuthenticated(true);
+
+            if (isMounted) {setIsAuthenticated(true);setUsers(resizeBy.data);}
             } catch {
-            if (isMounted) setIsAuthenticated(false);
+            if (isMounted) {setIsAuthenticated(false);setUsers(null);}
             } finally {
             if (isMounted) setLoading(false);
             }
@@ -77,7 +79,7 @@ export function AuthProvider({ children }){
 
     return (
         <AuthContext.Provider
-          value={{isAuthenticated,loading,Login,signup,logout}}>
+          value={{isAuthenticated,loading,Login,signup,logout,user}}>
             {children}
         </AuthContext.Provider>
     )
