@@ -53,3 +53,10 @@ export const getExternalStories = () => EXTERNAL_API.get("/books");
 
 export const getStoryById = (storyId) =>
     INTERNAL_API.get(`/${storyId}`);
+
+// ✅ External book details by id
+export const getExternalStoryById = (bookId) =>
+  EXTERNAL_API.get(`/books/${bookId}`);
+
+// ✅ Fetch readable text from a direct URL (plain text / html)
+export const fetchExternalTextByUrl = (url) => axios.get(url);

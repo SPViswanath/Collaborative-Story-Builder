@@ -1,5 +1,6 @@
 const Chapter = require("../models/Chapter");
 const Story = require("../models/Story");
+const LOCK_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 const createChapter = async (req,res)=>{
 
@@ -62,7 +63,7 @@ const getChapterSidebar = async (req,res)=>{
 
         const chapters = await Chapter.find(
             { story: storyId },
-            { title: 1, parentChapter: 1, isBranch: 1, order:1}
+            { title: 1, parentChapter: 1, isBranch: 1, order:1, isLocked:1, lockExpiresAt:1}
         ).sort({order:1});
 
         res.status(200).json({chapters});
@@ -89,6 +90,17 @@ const getChapterContent = async (req, res) => {
       return res.status(404).json({ message: "Chapter not found" });
     }
 
+    const now = new Date();
+
+    if (chapter.isLocked && chapter.lockExpiresAt && chapter.lockExpiresAt <= now) {
+        chapter.isLocked = false;
+        chapter.lockedBy = null;
+        chapter.lockedAt = null;
+        chapter.lockExpiresAt = null;
+        await chapter.save();
+    }
+
+
     res.status(200).json({ chapter });
 
   } catch (err) {
@@ -111,14 +123,25 @@ const updateChapterContent = async (req, res)=>{
 
     const chapter = await Chapter.findById(chapterId);
     if(!chapter){
-      return res.status(404).json({message:"Chapter not found"});
+        return res.status(404).json({message:"Chapter not found"});
     }
 
     const story = await Story.findById(chapter.story);
     if(!story){
-      return res.status(404).json({message: "Story not found"});
+        return res.status(404).json({message: "Story not found"});
     }
     
+    const now = new Date();
+
+    if (chapter.isLocked && chapter.lockExpiresAt && chapter.lockExpiresAt <= now) {
+        chapter.isLocked = false;
+        chapter.lockedBy = null;
+        chapter.lockedAt = null;
+        chapter.lockExpiresAt = null;
+        await chapter.save();
+    }
+
+
     if (
         chapter.isLocked &&
         chapter.lockedBy &&
@@ -161,79 +184,93 @@ const updateChapterContent = async (req, res)=>{
   }
 };
 
-// chapter Locking mechanism
+// locking mechanism
+const lockChapter = async (req, res) => {
+  try {
+    const { chapterId } = req.params;
 
-const lockChapter = async (req,res)=>{
-  try{
-
-    const {chapterId} = req.params;
-  
     const chapter = await Chapter.findById(chapterId);
-    if(!chapter){
-      return res.status(404).json({
-        message: "Chapter not found"
-      });
+    if (!chapter) {
+      return res.status(404).json({ message: "Chapter not found" });
     }
-  
-    if(chapter.isLocked && chapter.lockedBy && chapter.lockedBy.toString() !== req.userId){
-      return res.status(423).json({
-        message: "chapter is currently locked by another user"
-      });
+
+    const now = new Date();
+
+    // ✅ if currently locked by someone else AND not expired -> block
+    if (
+      chapter.isLocked &&
+      chapter.lockedBy &&
+      chapter.lockedBy.toString() !== req.userId
+    ) {
+      // ✅ check if lock expired
+      if (chapter.lockExpiresAt && chapter.lockExpiresAt > now) {
+        return res.status(423).json({
+          message: "Chapter is currently locked by another user",
+        });
+      }
+
+      // ✅ expired -> release and allow takeover
+      chapter.isLocked = false;
+      chapter.lockedBy = null;
+      chapter.lockedAt = null;
+      chapter.lockExpiresAt = null;
     }
-  
-    chapter.isLocked =true;
+
+    // ✅ lock (or renew lock if same user)
+    chapter.isLocked = true;
     chapter.lockedBy = req.userId;
-    chapter.lockedAt = new Date();
-  
+    chapter.lockedAt = now;
+    chapter.lockExpiresAt = new Date(now.getTime() + LOCK_TTL_MS);
+
     await chapter.save();
 
-    res.status(200).json({
-      message: "Chapter locked successfully"
+    return res.status(200).json({
+      message: "Chapter locked successfully",
+      lockExpiresAt: chapter.lockExpiresAt,
     });
-  }
-  catch(err){
+  } catch (err) {
     return res.status(500).json({
       message: "Failed to lock chapter",
-      error : err.message
+      error: err.message,
     });
   }
-}
+};
 
-//unlock chapter
-const unlockChapter = async (req,res)=>{
-  try{
-    const {chapterId} = req.params;
+// unlock chapter
+
+const unlockChapter = async (req, res) => {
+  try {
+    const { chapterId } = req.params;
+
     const chapter = await Chapter.findById(chapterId);
-
-    if(!chapter){
-      return res.status(404).json({
-        message:"Chapter not found"
-      });
+    if (!chapter) {
+      return res.status(404).json({ message: "Chapter not found" });
     }
 
-    //only locker cann unlock
-
-    if(chapter.isLocked && chapter.lockedBy.toString()!==req.userId){
-      return res.status(403).json({message: "You're not allowed to unlock this chapter"});
+    // only locker can unlock
+    if (chapter.isLocked && chapter.lockedBy && chapter.lockedBy.toString() !== req.userId) {
+      return res
+        .status(403)
+        .json({ message: "You're not allowed to unlock this chapter" });
     }
 
     chapter.isLocked = false;
     chapter.lockedBy = null;
     chapter.lockedAt = null;
+    chapter.lockExpiresAt = null;
 
     await chapter.save();
 
-    res.status(200).json({
-      message:"Chapter unlocked successfully",
+    return res.status(200).json({
+      message: "Chapter unlocked successfully",
     });
-  }
-  catch(err){
+  } catch (err) {
     return res.status(500).json({
       message: "Failed to unlock the chapter",
-      error : err.message
+      error: err.message,
     });
   }
-}
+};
 
 
 module.exports = {createChapter,

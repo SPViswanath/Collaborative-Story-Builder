@@ -93,7 +93,7 @@ function StoryCard({
           onError={(e) => {
             e.currentTarget.src = defaultImage;
           }}
-          className="w-full h-32 object-cover rounded-t-lg border-b border-gray-300"
+          className="w-full h-24 object-cover rounded-t-lg border-b border-gray-300"
         />
 
       </div>
@@ -106,13 +106,13 @@ function StoryCard({
             onError={(e) => {
               e.currentTarget.src = defaultImage;
             }}
-            className="w-full h-40 object-cover rounded-t-lg border-b border-gray-300"
+            className="w-full h-30 object-cover rounded-t-lg border-b border-gray-300"
           />
         </div>
 
 
       {/* ✅ Body = only title */}
-      <div className="p-4 flex items-center justify-between">
+      <div className="p-3 flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm font-semibold text-gray-700">{displayTitle}</p>
         </div>

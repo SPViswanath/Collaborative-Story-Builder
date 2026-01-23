@@ -1,208 +1,242 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import Navbar from "../components/common/Navbar";
+import { getStoryById, getExternalStoryById, fetchExternalTextByUrl } from "../api/storyApi";
 import { getChapterSidebar, getChapterContent } from "../api/chapterApi";
 
 function Reader() {
-  const { source, id } = useParams(); // internal | external
+  const { source, id } = useParams();
+  const navigate = useNavigate();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // internal story
+  // Internal
+  const [story, setStory] = useState(null);
   const [chapters, setChapters] = useState([]);
-  const [activeChapterId, setActiveChapterId] = useState(null);
-  const [content, setContent] = useState("");
+  const [selectedChapterId, setSelectedChapterId] = useState(null);
+  const [chapterContent, setChapterContent] = useState("");
 
-  // external story
-  const [bookMeta, setBookMeta] = useState(null);
-  const [bookHtml, setBookHtml] = useState("");
+  // External
+  const [externalBook, setExternalBook] = useState(null);
+  const [externalText, setExternalText] = useState("");
 
-  /* ---------------- INTERNAL STORY ---------------- */
+  const isInternal = source === "internal";
+  const isExternal = source === "external";
+
+  const readerTitle = useMemo(() => {
+    if (isInternal) return story?.title || "Story";
+    return externalBook?.title || "Book";
+  }, [isInternal, story?.title, externalBook?.title]);
 
   useEffect(() => {
-    if (source !== "internal") return;
+    const loadReader = async () => {
+      setLoading(true);
+      setError("");
 
-    const loadSidebar = async () => {
-        try {
-          const res = await getSidebar(id);
-          const list = res.data.chapters || [];
+      try {
+        // ✅ INTERNAL STORY FLOW
+        if (isInternal) {
+          const storyRes = await getStoryById(id);
+          setStory(storyRes.data.story);
+
+          const sidebarRes = await getChapterSidebar(id);
+          const list = sidebarRes.data?.chapters || [];
+
           setChapters(list);
 
           if (list.length > 0) {
-            setActiveChapterId(list[0]._id);
+            const firstChapter = list[0];
+            setSelectedChapterId(firstChapter._id);
+
+            const chapterRes = await getChapterContent(firstChapter._id);
+            setChapterContent(chapterRes.data?.chapter?.content || "");
           } else {
-            // 🔑 no chapters → stop loading
-            setLoading(false);
+            setSelectedChapterId(null);
+            setChapterContent("");
           }
-        } catch {
-          setError("Failed to load chapters");
-          setLoading(false);
         }
-      };
+
+        // ✅ EXTERNAL STORY FLOW
+        if (isExternal) {
+          const bookRes = await getExternalStoryById(id);
+          const book = bookRes.data;
+
+          setExternalBook(book);
+
+          // Prefer plain text
+          const plain =
+              book?.formats?.["text/plain; charset=utf-8"] ||
+              book?.formats?.["text/plain"];
+
+          const readableUrl = plain || null;
 
 
-    loadSidebar();
-  }, [source, id]);
+          if (!readableUrl) {
+            setExternalText("");
+            return;
+          }
 
-  useEffect(() => {
-    if (source !== "internal" || !activeChapterId) return;
+          const textRes = await fetchExternalTextByUrl(readableUrl);
 
-    const loadContent = async () => {
-      try {
-        const res = await getChapterContent(activeChapterId);
-        setContent(res.data.chapter?.content || "");
-      } catch {
-        setError("Failed to load chapter content");
+          // show as raw text (safe)
+          setExternalText(textRes.data || "");
+        }
+      } catch (err) {
+        console.error(err);
+        setError(err?.response?.data?.message || "Failed to load reader");
       } finally {
         setLoading(false);
       }
     };
 
-    loadContent();
-  }, [source, activeChapterId]);
-
-  /* ---------------- EXTERNAL STORY ---------------- */
-
-  useEffect(() => {
-    if (source !== "external") return;
-
-    const loadExternal = async () => {
-      try {
-        const metaRes = await axios.get(`https://gutendex.com/books/${id}`);
-        setBookMeta(metaRes.data);
-
-        const htmlUrl =
-          metaRes.data.formats?.["text/html"] ||
-          metaRes.data.formats?.["text/plain"];
-
-        if (!htmlUrl) throw new Error();
-
-        const htmlRes = await axios.get(htmlUrl);
-        setBookHtml(htmlRes.data);
-      } catch {
-        setError("Failed to load external story");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadExternal();
+    loadReader();
   }, [source, id]);
 
-  /* ---------------- STATES ---------------- */
+  // ✅ Chapter change (internal)
+  const handleSelectChapter = async (chapterId) => {
+    setSelectedChapterId(chapterId);
+    setLoading(true);
+    setError("");
 
-  if (loading) {
-    return <div className="p-8 text-center text-gray-600">Loading…</div>;
-  }
-
-  if (error) {
-    return <div className="p-8 text-center text-red-600">{error}</div>;
-  }
-
-  // chapter tree
-  const chapterTree = chapters.reduce((acc, ch) => {
-    if (!ch.isBranch) {
-        acc[ch._id] = { ...ch, branches: [] };
+    try {
+      const chapterRes = await getChapterContent(chapterId);
+      setChapterContent(chapterRes.data?.chapter?.content || "");
+    } catch (err) {
+      setError("Failed to load chapter");
+    } finally {
+      setLoading(false);
     }
-    return acc;
-  },{});
-
-  chapters.forEach((ch) => {
-    if (ch.isBranch && ch.parentChapter && chapterTree[ch.parentChapter]) {
-        chapterTree[ch.parentChapter].branches.push(ch);
-    }
-   });
-
-
-  /* ---------------- INTERNAL READER ---------------- */
-
-  if (source === "internal") {
-    return (
-      <div className="h-screen flex bg-muted/40">
-
-        {/* SHADCN SIDEBAR */}
-        <Sidebar className="border-r">
-          <SidebarHeader className="border-b px-4 py-3">
-            <h2 className="font-semibold text-lg">Chapters</h2>
-          </SidebarHeader>
-
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Story Structure</SidebarGroupLabel>
-
-              <SidebarGroupContent>
-                <SidebarMenu>
-                    {Object.values(chapterTree).map((chapter) => (
-                        <SidebarMenuItem key={chapter._id}>
-                        
-                        {/* Main Chapter */}
-                        <SidebarMenuButton
-                            onClick={() => setActiveChapterId(chapter._id)}
-                            isActive={chapter._id === activeChapterId}
-                        >
-                            {chapter.title}
-                        </SidebarMenuButton>
-
-                        {/* Branches */}
-                        {chapter.branches.length > 0 && (
-                            <div className="ml-4 mt-1 space-y-1">
-                            {chapter.branches.map((branch) => (
-                                <SidebarMenuButton
-                                key={branch._id}
-                                onClick={() => setActiveChapterId(branch._id)}
-                                isActive={branch._id === activeChapterId}
-                                className="text-sm text-muted-foreground"
-                                >
-                                ↳ {branch.title}
-                                </SidebarMenuButton>
-                            ))}
-                            </div>
-                        )}
-
-                        </SidebarMenuItem>
-                    ))}
-                    </SidebarMenu>
-
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-        </Sidebar>
-
-        {/* READER CONTENT */}
-        <main className="flex-1 overflow-y-auto">
-          <article className="max-w-3xl mx-auto px-6 py-10">
-            <div
-              className="prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{
-                __html: content || "<p>No content</p>"
-              }}
-            />
-          </article>
-        </main>
-      </div>
-    );
-  }
-
-  /* ---------------- EXTERNAL READER ---------------- */
+  };
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <article className="max-w-3xl mx-auto px-6 py-12">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold">{bookMeta?.title}</h1>
-          <p className="text-muted-foreground mt-1">
-            {bookMeta?.authors?.[0]?.name || "Unknown author"}
-          </p>
-          <span className="inline-block mt-3 text-xs bg-secondary px-2 py-1 rounded">
-            Public Domain
-          </span>
-        </header>
+    <div className="min-h-screen bg-gray-100 pt-16">
+      <Navbar page="Reader" />
 
-        <div
-          className="prose prose-lg max-w-none"
-          dangerouslySetInnerHTML={{ __html: bookHtml }}
-        />
-      </article>
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-4 mb-5">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              {readerTitle}
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              {isInternal
+                ? `Read chapters from StoryBuilder`
+                : `Public domain book`}
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate(-1)}
+            className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition text-gray-700 font-medium"
+          >
+            Back
+          </button>
+        </div>
+
+        {/* Loading / Error */}
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Content */}
+        {loading ? (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 text-gray-600">
+            Loading reader...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* ✅ Left sidebar (internal chapters) */}
+            {isInternal && (
+              <div className="lg:col-span-1">
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-200">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Chapters
+                    </p>
+                  </div>
+
+                  <div className="p-2 max-h-[70vh] overflow-auto">
+                    {chapters.length === 0 ? (
+                      <div className="p-3 text-sm text-gray-600">
+                        No chapters available.
+                      </div>
+                    ) : (
+                      chapters.map((ch) => {
+                        const active = ch._id === selectedChapterId;
+                        return (
+                          <button
+                            key={ch._id}
+                            onClick={() => handleSelectChapter(ch._id)}
+                            className={`w-full text-left px-3 py-2 rounded-xl text-sm transition mb-1 ${
+                              active
+                                ? "bg-gray-100 text-gray-900 border border-gray-200"
+                                : "hover:bg-gray-50 text-gray-700"
+                            }`}
+                          >
+                            {ch.title || "Untitled Chapter"}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Main reader body */}
+            <div className={isInternal ? "lg:col-span-3" : "lg:col-span-4"}>
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-200">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {isInternal ? "Chapter Content" : "Book Content"}
+                  </p>
+                </div>
+
+                <div className="p-5">
+                  {/* Internal chapter content is HTML (Quill) */}
+                  {isInternal && (
+                    <div
+                      className="prose max-w-none"
+                      dangerouslySetInnerHTML={{
+                        __html: chapterContent || "<p>No content.</p>",
+                      }}
+                    />
+                  )}
+
+                  {/* External is raw text */}
+                  {isExternal && (
+                    <>
+                      {externalText ? (
+                        <pre className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">
+                          {externalText}
+                        </pre>
+                      ) : (
+                        <div className="text-gray-600 text-sm">
+                          This book format is not directly readable here.
+                          <div className="mt-3">
+                            <a
+                              href={externalBook?.formats?.["text/html"] || "#"}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-block px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition font-medium text-gray-700"
+                            >
+                              Read on Gutenberg
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -56,7 +56,7 @@ function CreateChapterModal({
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800 transition disabled:opacity-60"
+            className="w-full px-4 py-2 rounded-md border border-gray-300 text-gray-800 hover:bg-gray-50 transition disabled:opacity-60"
           >
             {loading ? "Creating..." : "Create"}
           </button>

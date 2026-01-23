@@ -21,6 +21,19 @@ function Dashboard() {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [sidebarOpen]);
 
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [sidebarOpen]);
+
+
   return (
     <div className="min-h-screen bg-gray-100 pt-16">
       {/* NAVBAR */}
@@ -30,10 +43,11 @@ function Dashboard() {
         {/* Mobile Overlay (ONLY when sidebar open) */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/40 z-40 md:hidden"
+            className="fixed inset-0 bg-black/40 z-[70] md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
+
 
         {/* SIDEBAR */}
         <DashboardSidebar
@@ -66,29 +80,23 @@ function Dashboard() {
 
           {/* Create Story */}
           {active === "create" && (
-            <div className="flex justify-center pt-10">
-              <div className="w-full max-w-md">
-                <h1 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
-                  Create a New Story
-                </h1>
+            <div className="pt-4">
+              <CreateStoryModal
+                onCreated={(storyTitle) => {
+                  setActive("ongoing");
 
-                <CreateStoryModal
-                  onCreated={(storyTitle) => {
-                    setActive("ongoing");
+                  const trimmed =
+                    storyTitle.length > 40 ? storyTitle.slice(0, 40) + "…" : storyTitle;
 
-                    const trimmed =
-                      storyTitle.length > 40
-                        ? storyTitle.slice(0, 40) + "…"
-                        : storyTitle;
-
-                    setSuccessMessage(`Story "${trimmed}" created successfully.`);
-                    setTimeout(() => setSuccessMessage(""), 3000);
-                  }}
-                  onClose={() => setActive("ongoing")}
-                />
-              </div>
+                  setSuccessMessage(`Story "${trimmed}" created successfully.`);
+                  setTimeout(() => setSuccessMessage(""), 3000);
+                }}
+                onClose={() => setActive("ongoing")}
+              />
             </div>
           )}
+
+
         </main>
       </div>
     </div>

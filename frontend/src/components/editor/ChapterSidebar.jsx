@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getChapterSidebar, createChapter } from "../../api/chapterApi";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Lock, Unlock ,Plus} from "lucide-react";
 import CreateChapterModal from "./CreateChapterModal";
 
 function ChapterSidebar({
@@ -13,7 +13,8 @@ function ChapterSidebar({
   collapsed,
   setCollapsed,
   onChaptersLoaded,
-}) {
+  reloadKey,
+}){
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
@@ -40,6 +41,12 @@ function ChapterSidebar({
   useEffect(() => {
     loadSidebar();
   }, [storyId]);
+
+  useEffect(() => {
+    if (!storyId) return;
+    loadSidebar();
+  }, [reloadKey]);
+
 
   // ✅ For indentation: group branches under parent
   const normalChapters = chapters.filter((c) => !c.isBranch);
@@ -126,60 +133,70 @@ function ChapterSidebar({
               return (
                 <div key={ch._id} className="space-y-1">
                   {/* ✅ Chapter item (hover shows + branch) */}
-                 <div className="group flex items-center gap-1">
-                  {/* ✅ VS Code style dropdown toggle */}
-                  {!collapsed && chapterBranches.length > 0 && (
-                    <button
-                      onClick={() =>
-                        setExpanded((prev) => ({
-                          ...prev,
-                          [ch._id]: !(prev[ch._id] ?? true),
-                        }))
-                      }
-                      className="w-7 h-9 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-600"
-                      title={isExpanded ? "Collapse" : "Expand"}
-                    >
-                      {isExpanded ? "▾" : "▸"}
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      setSelectedChapter(ch);
-                      setSidebarOpen(false); // ✅ mobile auto close
-                    }}
-                    className={`
-                      flex-1 flex items-center
-                      ${collapsed ? "justify-center px-2" : "px-3"}
-                      py-2.5 rounded-lg border transition
-                      ${
-                        selectedChapter?._id === ch._id
-                          ? "bg-black text-white border-black"
-                          : "bg-white border-gray-200 hover:bg-gray-100"
-                      }
-                    `}
-                    title={collapsed ? ch.title : undefined}
-                  >
-                    {!collapsed && (
-                      <span className="text-sm font-medium truncate">{ch.title}</span>
-                    )}
-                    {collapsed && <span className="text-sm font-semibold">C</span>}
-                  </button>
-
-                  {/* ✅ Add Branch button on hover (like ChatGPT sidebar) */}
-                  {!collapsed && (
+                  {/* ✅ Chapter item (hover shows + branch) */}
+                  {/* ✅ Chapter item (ChatGPT-style: icons inside the same item) */}
+                  <div key={ch._id} className="space-y-1">
                     <button
                       onClick={() => {
-                        setBranchParent(ch);
-                        setOpenCreateBranch(true);
+                        setSelectedChapter(ch);
+                        setSidebarOpen(false); // ✅ mobile auto close
                       }}
-                      className="ml-2 hidden group-hover:flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-100 transition-colors text-xl font-semibold"
-                      title="Add Branch"
+                      className={`
+                        group w-full flex items-center justify-between
+                        ${collapsed ? "px-2 justify-center" : "px-3"}
+                        py-2.5 rounded-lg border transition
+                        ${
+                          selectedChapter?._id === ch._id
+                            ? "bg-gray-100 text-gray-900 border-gray-300"
+                            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
+                        }
+                      `}
+                      title={collapsed ? ch.title : undefined}
                     >
-                      +
+                      {/* ✅ LEFT: Chapter title */}
+                      {!collapsed ? (
+                        <span className="text-sm font-medium truncate">{ch.title}</span>
+                      ) : (
+                        <span className="text-sm font-semibold">C</span>
+                      )}
+
+                      {/* ✅ RIGHT: Actions INSIDE item */}
+                      {!collapsed && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          
+
+                          {/* ✅ Dropdown toggle (only on hover) */}
+                          {chapterBranches.length > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpanded((prev) => ({
+                                  ...prev,
+                                  [ch._id]: !(prev[ch._id] ?? true),
+                                }));
+                              }}
+                              className="hidden group-hover:flex w-7 h-7 items-center justify-center rounded-md hover:bg-gray-200 text-gray-700"
+                              title={isExpanded ? "Collapse" : "Expand"}
+                            >
+                              {isExpanded ? "▾" : "▸"}
+                            </button>
+                          )}
+
+                          {/* ✅ Lock icon (ALWAYS visible) */}
+                          <span className="w-7 h-7 flex items-center justify-center">
+                            {ch.isLocked ? (
+                              <Lock size={16} className="text-gray-700" />
+                            ) : (
+                              <Unlock size={16} className="text-gray-400" />
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </button>
-                  )}
-                </div>
+                    
+                  </div>
+
+
 
 
                   {/* ✅ Branch list under chapter */}
@@ -196,8 +213,8 @@ function ChapterSidebar({
                             w-full text-left px-3 py-2 rounded-md border text-sm transition
                             ${
                               selectedChapter?._id === b._id
-                                ? "bg-black text-white border-black"
-                                : "bg-white border-gray-200 hover:bg-gray-100"
+                                  ? "bg-gray-100 text-gray-900 border-gray-300"
+                                  : "bg-white border-gray-200 hover:bg-gray-100"
                             }
                           `}
                         >

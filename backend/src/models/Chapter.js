@@ -53,7 +53,12 @@ const chapterSchema = new mongoose.Schema(
         lockedAt:{
             type: Date,
             default: null
-        }
+        },
+        lockExpiresAt: {
+            type: Date,
+            default: null,
+        },
+
     },
     {
         timestamps: true

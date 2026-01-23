@@ -16,6 +16,7 @@ function EditorLayout({ storyId }) {
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile
   const [collapsed, setCollapsed] = useState(false); // desktop
   const [sidebarLoaded, setSidebarLoaded] = useState(false);
+  const [sidebarReloadKey, setSidebarReloadKey] = useState(0);
 
   useEffect(() => {
     async function loadStoryTitle() {
@@ -81,6 +82,8 @@ function EditorLayout({ storyId }) {
                 setSidebarOpen={setSidebarOpen}
                 collapsed={collapsed}
                 setCollapsed={setCollapsed}
+                reloadKey={sidebarReloadKey}
+                onRequestReload={() => setSidebarReloadKey((p) => p + 1)}
                 onChaptersLoaded={(chapters) => {
                   setSidebarLoaded(true);
 
@@ -98,11 +101,13 @@ function EditorLayout({ storyId }) {
             {/* Header */}
             <div className="shrink-0 border-b border-gray-200 bg-white">
               <EditorHeader
+                storyId={storyId}
                 storyTitle={storyTitle}
                 selectedChapter={selectedChapter}
                 onOpenSidebar={() => setSidebarOpen(true)}
                 metaContent={<MetaPanel chapterDetails={chapterDetails} onRefresh={refreshChapterDetails} />}
                 chapterDetails={chapterDetails}
+                onBranchCreated={() => setSidebarReloadKey((p) => p + 1)}
               />
             </div>
 
