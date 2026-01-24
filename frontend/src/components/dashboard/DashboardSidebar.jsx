@@ -65,22 +65,28 @@ function DashboardSidebar({
   const { logout, user } = useAuth();
 
   return (
-    <aside
-      className={`
-        fixed md:static
-        top-16 left-0 z-50
-        h-[calc(100vh-4rem)]
-        bg-white border-r border-gray-200
-        flex flex-col shadow-sm
-
-        transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        md:translate-x-0
+   
+      <aside
+        className={`
+          fixed md:static 
+          top-16 left-0 z-50
+          h-[calc(100vh-4rem)]
+          bg-white border-r border-gray-200 flex flex-col shadow-sm
+          overflow-visible
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0
 
           transition-[width] duration-300 ease-in-out
-          ${collapsed ? "w-20" : "w-64"}
-      `}
-    >
+          ${collapsed ? "md:w-20" : "md:w-64"}
+          w-72
+
+          pointer-events-auto
+        `}
+      >
+
+
+
       {/* ✅ Mobile Header (Dashboard + Close in same line) */}
       <div className="md:hidden flex items-start justify-between px-4 py-4 border-b border-gray-100">
         <div className="flex items-start gap-3">
@@ -100,7 +106,7 @@ function DashboardSidebar({
               </p>
 
               {user?.email && (
-                <p className="text-xs text-gray-400 truncate max-w-[210px]">
+                <p className="text-xs text-gray-400 truncate max-w-xs">
                   {user.email}
                 </p>
               )}
@@ -120,10 +126,12 @@ function DashboardSidebar({
       {/* ✅ Desktop Collapse Toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-6 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-900 hover:bg-gray-50 shadow-sm transition-colors z-50"
+        className="absolute -right-3 top-6 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-900 hover:bg-gray-50 shadow-sm transition-colors z-10"
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
+      <div className="flex flex-col h-full overflow-y-auto">
+
 
       {/* ✅ TOP Section */}
       <div className="px-3 pt-6">
@@ -224,6 +232,8 @@ function DashboardSidebar({
           </button>
         </nav>
       </div>
+      </div>
+
 
       {/* ✅ Bottom Logout */}
       <div className="mt-auto px-3 pb-6">

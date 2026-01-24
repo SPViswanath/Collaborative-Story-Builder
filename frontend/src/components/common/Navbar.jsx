@@ -86,48 +86,51 @@ function Navbar({ onMenuClick = () => {}, page }) {
   const displayEmail = useMemo(() => user?.email || "", [user?.email]);
 
   /* Common nav links */
-  const NavLinks = ({ onClick }) => (
-    <>
-      <NavLink
-        to="/"
-        onClick={onClick}
-        className={({ isActive }) =>
-          isActive
-            ? "text-black font-medium"
-            : "text-gray-600 hover:text-black"
+  /* Common nav links */
+const NavLinks = ({ onClick }) => (
+  <>
+    <NavLink
+      to="/"
+      onClick={onClick}
+      className={({ isActive }) =>
+        isActive ? "text-black font-medium" : "text-gray-600 hover:text-black"
+      }
+    >
+      Discover
+    </NavLink>
+
+    <NavLink
+      to="/main"
+      onClick={onClick}
+      className={({ isActive }) =>
+        isActive ? "text-black font-medium" : "text-gray-600 hover:text-black"
+      }
+    >
+      Explore
+    </NavLink>
+
+    {/* ✅ Always show Dashboard */}
+    <button
+      type="button"
+      onClick={() => {
+        onClick?.(); // close mobile drawer if passed
+        if (!isAuthenticated) {
+          navigate("/login", { state: { from: "/dashboard" } });
+          return;
         }
-      >
-        Discover
-      </NavLink>
+        navigate("/dashboard");
+      }}
+      className={`${
+        window.location.pathname.startsWith("/dashboard")
+          ? "text-black font-medium"
+          : "text-gray-600 hover:text-black"
+      }`}
+    >
+      Dashboard
+    </button>
+  </>
+);
 
-      <NavLink
-        to="/main"
-        onClick={onClick}
-        className={({ isActive }) =>
-          isActive
-            ? "text-black font-medium"
-            : "text-gray-600 hover:text-black"
-        }
-      >
-        Explore
-      </NavLink>
-
-
-      {isAuthenticated && (
-        <NavLink
-          to="/dashboard"
-          onClick={onClick}
-          className={({ isActive }) =>
-            isActive
-              ? "text-black font-medium"
-              : "text-gray-600 hover:text-black"
-          }
-        >
-          Dashboard
-        </NavLink>
-      )}
-    </>
-  );
 
   return (
     <>
@@ -146,11 +149,14 @@ function Navbar({ onMenuClick = () => {}, page }) {
 
             {!isAuthenticated ? (
               <button
-                onClick={() =>navigate("/login", { state: { from: window.location.pathname } })}
-                className="ml-4 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition"
+                onClick={() =>
+                  navigate("/login", { state: { from: window.location.pathname } })
+                }
+                className="ml-4 px-4 py-2 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition font-medium"
               >
                 Get Started
               </button>
+
             ) : (
               <div className="relative ml-4" ref={dropdownRef}>
                 {/* ✅ Initials Profile Button */}
@@ -221,7 +227,7 @@ function Navbar({ onMenuClick = () => {}, page }) {
         </div>
       </nav>
 
-      {/* ===== MOBILE SLIDE-IN MENU (FROM RIGHT) ===== */}
+     {/* ===== MOBILE SLIDE-IN MENU (FROM RIGHT) ===== */}
       {mobileMenuOpen && (
         <>
           {/* Overlay */}
@@ -231,34 +237,77 @@ function Navbar({ onMenuClick = () => {}, page }) {
           />
 
           {/* Drawer */}
-          <div className="fixed top-0 right-0 h-full w-72 bg-white z-50 shadow-lg p-6 flex flex-col gap-6 transform transition-transform duration-300">
-            {/* ✅ User section */}
-            <div className="flex items-center gap-3">
-              <InitialsAvatar name={displayName} size="lg" />
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-gray-900 truncate">
-                  {displayName}
-                </div>
-                <div className="text-xs text-gray-500 truncate">
-                  {displayEmail}
+          <div className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-xl flex flex-col">
+            {/* ✅ Header */}
+            <div className="p-5 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <InitialsAvatar name={displayName} size="lg" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {displayName}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">{displayEmail}</p>
                 </div>
               </div>
             </div>
 
-            <div className="h-px bg-gray-200" />
+            {/* ✅ Links */}
+            <div className="flex-1 p-5">
+              <div className="flex flex-col gap-4 text-sm font-medium">
+                <NavLink
+                  to="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    isActive
+                      ? "text-gray-900 font-semibold"
+                      : "text-gray-600 hover:text-gray-900"
+                  }
+                >
+                  Discover
+                </NavLink>
 
-            <div className="flex flex-col gap-4 text-sm">
-              <NavLinks onClick={() => setMobileMenuOpen(false)} />
+                <NavLink
+                  to="/main"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    isActive
+                      ? "text-gray-900 font-semibold"
+                      : "text-gray-600 hover:text-gray-900"
+                  }
+                >
+                  Explore
+                </NavLink>
+
+                {/* ✅ Dashboard should be visible always
+                    If not logged in -> redirect to login */}
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+
+                    if (!isAuthenticated) {
+                      navigate("/login", {
+                        state: { from: window.location.pathname },
+                      });
+                    } else {
+                      navigate("/dashboard");
+                    }
+                  }}
+                  className="text-left text-gray-600 hover:text-gray-900"
+                >
+                  Dashboard
+                </button>
+              </div>
             </div>
 
-            <div className="mt-auto">
+            {/* ✅ Bottom Action */}
+            <div className="p-5 border-t border-gray-200">
               {!isAuthenticated ? (
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     navigate("/login", { state: { from: window.location.pathname } });
                   }}
-                  className="w-full px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition"
+                  className="w-full px-4 py-3 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition"
                 >
                   Get Started
                 </button>
@@ -267,9 +316,11 @@ function Navbar({ onMenuClick = () => {}, page }) {
                   onClick={async () => {
                     setMobileMenuOpen(false);
                     await logout();
-                    navigate(getLogoutRedirect(), { replace: true });
+                    navigate("/", {
+                        state: { from: window.location.pathname },
+                      },{ replace: true });
                   }}
-                  className="w-full px-4 py-2 border rounded-md hover:bg-gray-100 transition font-medium text-gray-800"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 font-semibold hover:bg-gray-50 transition"
                 >
                   Logout
                 </button>
@@ -278,6 +329,8 @@ function Navbar({ onMenuClick = () => {}, page }) {
           </div>
         </>
       )}
+
+      
     </>
   );
 }

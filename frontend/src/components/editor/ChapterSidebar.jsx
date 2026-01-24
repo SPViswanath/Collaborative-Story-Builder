@@ -60,7 +60,7 @@ function ChapterSidebar({
       {/* ✅ Mobile header */}
       <div className="md:hidden sticky top-0 bg-white z-10 flex items-center justify-between px-3 py-3 border-b border-gray-200">
         <div className="flex flex-col">
-          <h3 className="text-sm font-semibold text-gray-900 break-words">
+          <h3 className="text-sm font-semibold text-gray-900 wrap-break-word">
             {storyTitle}
           </h3>
           <p className="text-xs text-gray-500">Chapter List</p>
@@ -164,7 +164,7 @@ function ChapterSidebar({
                         <div className="flex items-center gap-2 shrink-0">
                           {/* ✅ Dropdown toggle (mobile always visible) */}
                           {chapterBranches.length > 0 && (
-                            <button
+                            <span
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setExpanded((prev) => ({
@@ -172,14 +172,30 @@ function ChapterSidebar({
                                   [ch._id]: !(prev[ch._id] ?? false),
                                 }));
                               }}
-                              className="hidden group-hover:flex w-7 h-7 items-center justify-center rounded-md hover:bg-gray-200 text-gray-700"
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setExpanded((prev) => ({
+                                    ...prev,
+                                    [ch._id]: !(prev[ch._id] ?? false),
+                                  }));
+                                }
+                              }}
+                             className="
+                                w-7 h-7 inline-flex items-center justify-center rounded-md
+                                hover:bg-gray-200 text-gray-700 cursor-pointer select-none
+                                md:opacity-0 md:group-hover:opacity-100 md:transition-opacity
+                              "
+
+
                               title={isExpanded ? "Collapse" : "Expand"}
                             >
                               {isExpanded ? "▾" : "▸"}
-                            </button>
+                            </span>
                           )}
-
-
+                          
                           {/* ✅ Lock icon (ALWAYS visible) */}
                           <span className="w-7 h-7 flex items-center justify-center">
                             {ch.isLocked ? (

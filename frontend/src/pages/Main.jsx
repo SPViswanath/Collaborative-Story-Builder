@@ -16,7 +16,7 @@ function Main() {
   const [infoOpen, setInfoOpen] = useState(false);
 
   useEffect(() => {
-    const fetchAllStories = async () => {
+    const fetchAllStories = async () => { 
       try {
         setLoading(true);
 
@@ -40,10 +40,9 @@ function Main() {
   const showInternal = filter === "all" || filter === "internal";
   const showExternal = filter === "all" || filter === "external";
 
-  const activeBtnClass =
-    "bg-gray-900 text-white border-gray-900 shadow-sm";
-  const normalBtnClass =
-    "bg-white text-gray-700 border-gray-200 hover:bg-gray-50";
+  const activeBtnClass = "bg-gray-100 text-gray-900 border-gray-300";
+  const normalBtnClass = "bg-white text-gray-700 border-transparent hover:bg-gray-50 hover:text-gray-900";
+
 
   if (loading) {
     return (
@@ -69,11 +68,11 @@ function Main() {
               </div>
 
               {/* ✅ Filter bar */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1">
+              <div className="flex items-center gap-1">
+                <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1.5 gap-2">
                   <button
                     onClick={() => setFilter("all")}
-                    className={`px-3 py-2 text-sm rounded-lg border transition ${
+                    className={`px-4 py-2 text-sm rounded-lg border transition ${
                       filter === "all" ? activeBtnClass : normalBtnClass
                     }`}
                   >
@@ -82,7 +81,7 @@ function Main() {
 
                   <button
                     onClick={() => setFilter("internal")}
-                    className={`px-3 py-2 text-sm rounded-lg border transition ${
+                    className={`px-4 py-2 text-sm rounded-lg border transition ${
                       filter === "internal" ? activeBtnClass : normalBtnClass
                     }`}
                   >
@@ -91,7 +90,7 @@ function Main() {
 
                   <button
                     onClick={() => setFilter("external")}
-                    className={`px-3 py-2 text-sm rounded-lg border transition ${
+                    className={`px-4 py-2 text-sm rounded-lg border transition ${
                       filter === "external" ? activeBtnClass : normalBtnClass
                     }`}
                   >
@@ -102,7 +101,7 @@ function Main() {
                 {/* ✅ Info button (both mobile + desktop) */}
                 <button
                   onClick={() => setInfoOpen(true)}
-                  className="h-10 w-10 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center justify-center text-gray-700"
+                  className="h-12 w-12 rounded-full border-2 border-gray-300 bg-white hover:bg-gray-50 transition flex items-center justify-center text-gray-700"
                   title="Info"
                 >
                   i

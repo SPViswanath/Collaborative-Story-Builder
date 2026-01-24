@@ -11,6 +11,7 @@ const {createStory,
         removeCollaborator,
         deleteStory,
         getStoryById,
+        getPublicStoryById,
         exportStoryPDF
     } = require("../controllers/storyController");
 
@@ -36,7 +37,11 @@ router.delete(
   removeCollaborator
 );
 
+router.get("/public/:storyId", getPublicStoryById);
+
 router.delete("/:storyId", authMiddleware, deleteStory);
 
 router.get("/:storyId",authMiddleware, getStoryById);
+
+
 module.exports = router;

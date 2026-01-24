@@ -60,3 +60,7 @@ export const getExternalStoryById = (bookId) =>
 
 // ✅ Fetch readable text from a direct URL (plain text / html)
 export const fetchExternalTextByUrl = (url) => axios.get(url);
+
+// ✅ Public story details (for Reader - no login)
+export const getPublicStoryById = (storyId) =>
+  INTERNAL_API.get(`/public/${storyId}`);

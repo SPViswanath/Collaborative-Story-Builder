@@ -28,22 +28,14 @@ function StoryCard({
 
   const title = story?.title || "Untitled Story";
 
-  // ✅ your backend returns: { userId, name, email }
   const loggedInUserId = user?.userId;
 
-  // ✅ in your dashboard APIs, story.author is ObjectId (string), NOT populated
   const isAuthor =
     source === "internal" &&
     loggedInUserId &&
     story?.author &&
     story.author.toString() === loggedInUserId.toString();
 
-  // ✅ truncate title
-  const MAX_TITLE = 18;
-  const displayTitle =
-    title.length > MAX_TITLE ? title.slice(0, MAX_TITLE) + "....." : title;
-
-  // ✅ Card click -> open editor
   const handleCardClick = () => {
     if (mode !== "dashboard") {
       navigate(
@@ -54,7 +46,6 @@ function StoryCard({
     navigate(`/editor/${story._id}`);
   };
 
-  // ✅ Close menu outside click + ESC
   useEffect(() => {
     function handleOutsideClick(e) {
       if (!openMenu) return;
@@ -83,123 +74,127 @@ function StoryCard({
   return (
     <div
       onClick={handleCardClick}
-      className="bg-white rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-shadow relative overflow-visible cursor-pointer"
+      className="bg-white rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-shadow relative overflow-visible cursor-pointer md:h-[170px] flex flex-col"
     >
-      {/* ✅ Mobile = image on top */}
-      <div className="block md:hidden">
-        <img
-          src={imageUrl}
-          alt="story-cover"
-          onError={(e) => {
-            e.currentTarget.src = defaultImage;
-          }}
-          className="w-full h-24 object-cover rounded-t-lg border-b border-gray-300"
-        />
-
-      </div>
-
-      {/* ✅ Desktop = image header */}
-        <div className="hidden md:block">
+      {/* ✅ Image fixed height (desktop smaller) */}
+      <div className="h-[140px] md:h-[120px] w-full">
+        {/* ✅ Mobile */}
+        <div className="block md:hidden h-full">
           <img
             src={imageUrl}
             alt="story-cover"
             onError={(e) => {
               e.currentTarget.src = defaultImage;
             }}
-            className="w-full h-30 object-cover rounded-t-lg border-b border-gray-300"
+            className="w-full h-full object-cover rounded-t-lg border-b border-gray-300"
           />
         </div>
 
+        {/* ✅ Desktop */}
+        <div className="hidden md:block h-full">
+          <img
+            src={imageUrl}
+            alt="story-cover"
+            onError={(e) => {
+              e.currentTarget.src = defaultImage;
+            }}
+            className="w-full h-full object-cover rounded-t-lg border-b border-gray-300"
+          />
+        </div>
+      </div>
 
-      {/* ✅ Body = only title */}
-      <div className="p-3 flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-gray-700">{displayTitle}</p>
+      {/* ✅ Bottom section SMALLER in desktop */}
+      <div className="px-3 py-2 md:py-0 flex items-center gap-2 md:h-12">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-700 line-clamp-1 leading-4">
+            {title}
+          </p>
         </div>
 
-        {/* ✅ Menu button ONLY for author */}
-        {mode === "dashboard" && isAuthor && (
-          <div className="relative ml-4">
-            <button
-              ref={buttonRef}
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenMenu((prev) => !prev);
-              }}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              title="More options"
-            >
-              ⋮
-            </button>
-
-            {openMenu && (
-              <div
-                ref={menuRef}
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-300 rounded-lg shadow-lg z-[999]"
+        <div className="relative w-10 flex justify-end">
+          {mode === "dashboard" && isAuthor ? (
+            <>
+              <button
+                ref={buttonRef}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenu((prev) => !prev);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="More options"
               >
-                <button
-                  onClick={() => {
-                    navigate(`/editor/${story._id}`);
-                    setOpenMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
-                >
-                  Open in editor
-                </button>
+                ⋮
+              </button>
 
-                {!hideAddCollaborator && (
+              {openMenu && (
+                <div
+                  ref={menuRef}
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-300 rounded-lg shadow-lg z-50"
+                >
                   <button
-                  onClick={() => {
-                    onAddCollaborator?.(story._id);
-                    setOpenMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
-                 >
-                  Add a collaborator
-                </button>
-                )}
-                
+                    onClick={() => {
+                      navigate(`/editor/${story._id}`);
+                      setOpenMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
+                  >
+                    Open in editor
+                  </button>
 
-                <button
-                  onClick={() => {
-                    onViewCollaborators?.(story._id);
-                    setOpenMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
-                >
-                  View collaborators
-                  {!viewOnlyCollaborators && (
-                    <span className="block text-xs text-gray-500 font-normal">
-                    (remove inside)
-                  </span>
+                  {!hideAddCollaborator && (
+                    <button
+                      onClick={() => {
+                        onAddCollaborator?.(story._id);
+                        setOpenMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
+                    >
+                      Add a collaborator
+                    </button>
                   )}
-                  
-                </button>
 
-                <button
-                  onClick={() => {
-                    onPublishToggle?.(story._id);
-                    setOpenMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
-                >
-                  {story?.isPublished ? "Unpublish" : "Publish"}
-                </button>
+                  <button
+                    onClick={() => {
+                      onViewCollaborators?.(story._id);
+                      setOpenMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
+                  >
+                    View collaborators
+                    {!viewOnlyCollaborators && (
+                      <span className="block text-xs text-gray-500 font-normal">
+                        (remove inside)
+                      </span>
+                    )}
+                  </button>
 
-                <button
-                  onClick={() => {
-                    onDeleteStory?.(story._id);
-                    setOpenMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-red-50 transition-colors duration-150 font-medium text-red-700"
-                >
-                  Delete the entire story
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+                  <button
+                    onClick={() => {
+                      onPublishToggle?.(story._id);
+                      setOpenMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
+                  >
+                    {story?.isPublished ? "Unpublish" : "Publish"}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onDeleteStory?.(story._id);
+                      setOpenMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-red-50 transition-colors duration-150 font-medium text-red-700"
+                  >
+                    Delete the entire story
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-10 h-10 opacity-0 select-none">⋮</div>
+          )}
+        </div>
       </div>
     </div>
   );

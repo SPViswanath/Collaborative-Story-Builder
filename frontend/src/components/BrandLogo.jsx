@@ -15,9 +15,14 @@ function BrandLogo() {
     className="h-10 w-10 object-contain"
   />
 
-  <span className=" text-[#000000] font-[Agbalumo] tracking-wide">
-  StoryBuilder
-</span>
+  <h1
+    className="text-xl md:text-2xl font-bold tracking-tight text-gray-900"
+    style={{ fontFamily: "Montserrat, sans-serif" }}
+  >
+    Story<span className="text-emerald-700">Builder</span>
+  </h1>
+
+
 
 </div>
 

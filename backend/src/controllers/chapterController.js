@@ -272,11 +272,76 @@ const unlockChapter = async (req, res) => {
   }
 };
 
+// ✅ PUBLIC: chapter sidebar for Reader (only published stories)
+const getPublicChapterSidebar = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+
+    const story = await Story.findById(storyId);
+    if (!story) {
+      return res.status(404).json({ message: "Story not found" });
+    }
+
+    if (!story.isPublished) {
+      return res.status(403).json({ message: "This story is not published" });
+    }
+
+    const chapters = await Chapter.find(
+      { story: storyId, isBranch: false }, // ✅ show only chapters (no branches)
+      { title: 1, order: 1 }
+    ).sort({ order: 1 });
+
+    res.status(200).json({ chapters });
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to load public chapter sidebar",
+      error: err.message,
+    });
+  }
+};
+
+// ✅ PUBLIC: chapter content for Reader (only published stories)
+const getPublicChapterContent = async (req, res) => {
+  try {
+    const { chapterId } = req.params;
+
+    const chapter = await Chapter.findById(chapterId).select("title content story");
+
+    if (!chapter) {
+      return res.status(404).json({ message: "Chapter not found" });
+    }
+
+    const story = await Story.findById(chapter.story);
+    if (!story) {
+      return res.status(404).json({ message: "Story not found" });
+    }
+
+    if (!story.isPublished) {
+      return res.status(403).json({ message: "This story is not published" });
+    }
+
+    res.status(200).json({
+      chapter: {
+        _id: chapter._id,
+        title: chapter.title,
+        content: chapter.content,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to load public chapter content",
+      error: err.message,
+    });
+  }
+};
+
 
 module.exports = {createChapter,
                      getChapterSidebar, 
                      getChapterContent,
                      updateChapterContent,
+                     getPublicChapterSidebar,
+                     getPublicChapterContent,
                      lockChapter,
                      unlockChapter 
                  };

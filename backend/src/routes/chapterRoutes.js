@@ -6,6 +6,8 @@ const {
   getChapterSidebar, 
   getChapterContent,
   updateChapterContent,
+  getPublicChapterSidebar,
+  getPublicChapterContent,
   lockChapter,
   unlockChapter
 } = require("../controllers/chapterController");
@@ -52,5 +54,9 @@ router.post(
   authMiddleware,
   unlockChapter
 )
+
+router.get("/public/sidebar/:storyId", getPublicChapterSidebar);
+
+router.get("/public/content/:chapterId", getPublicChapterContent);
 
 module.exports = router;

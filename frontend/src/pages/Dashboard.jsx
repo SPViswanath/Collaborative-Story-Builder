@@ -41,14 +41,12 @@ function Dashboard() {
 
       <div className="flex">
         {/* Mobile Overlay (ONLY when sidebar open) */}
-       {sidebarOpen && (
+        {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/40 z-[70] md:hidden"
+            className="fixed inset-0 bg-black/40 z-40 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
-
-
 
         {/* SIDEBAR */}
         <DashboardSidebar
@@ -61,34 +59,23 @@ function Dashboard() {
         />
 
         {/* MAIN CONTENT */}
-        <main
-          className={`flex-1 p-6 md:p-8 bg-gray-100 min-h-[calc(100vh-4rem)] overflow-y-auto ${
-            collapsed ? "md:ml-20" : "md:ml-64"
-          }`}
-        >
-          {/* Success Message */}
+        <main className="flex-1 p-6 md:p-8 bg-gray-100 min-h-[calc(100vh-4rem)] overflow-y-auto">
           {successMessage && (
             <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-green-800">
               {successMessage}
             </div>
           )}
 
-          {/* Ongoing */}
           {active === "ongoing" && <OngoingStories />}
-
-          {/* Published */}
           {active === "published" && <PublishedStories />}
 
-          {/* Create Story */}
           {active === "create" && (
             <div className="pt-4">
               <CreateStoryModal
                 onCreated={(storyTitle) => {
                   setActive("ongoing");
-
                   const trimmed =
                     storyTitle.length > 40 ? storyTitle.slice(0, 40) + "…" : storyTitle;
-
                   setSuccessMessage(`Story "${trimmed}" created successfully.`);
                   setTimeout(() => setSuccessMessage(""), 3000);
                 }}
@@ -96,10 +83,9 @@ function Dashboard() {
               />
             </div>
           )}
-
-
         </main>
       </div>
+
     </div>
   );
 }
