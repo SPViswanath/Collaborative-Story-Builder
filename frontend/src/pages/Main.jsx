@@ -68,7 +68,7 @@ function Main() {
               </div>
 
               {/* ✅ Filter bar */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1.5 gap-2">
                   <button
                     onClick={() => setFilter("all")}
@@ -99,13 +99,14 @@ function Main() {
                 </div>
 
                 {/* ✅ Info button (both mobile + desktop) */}
-                <button
-                  onClick={() => setInfoOpen(true)}
-                  className="h-12 w-12 rounded-full border-2 border-gray-300 bg-white hover:bg-gray-50 transition flex items-center justify-center text-gray-700"
-                  title="Info"
-                >
-                  i
-                </button>
+               <button
+                onClick={() => setInfoOpen(true)}
+                className="h-9 w-9 md:h-12 md:w-12 shrink-0 rounded-full border-2 border-gray-300 bg-white hover:bg-gray-50 transition flex items-center justify-center text-gray-700 text-sm md:text-base"
+                title="Info"
+              >
+                i
+              </button>
+
               </div>
             </div>
 
@@ -126,7 +127,7 @@ function Main() {
                     No community stories available right now.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                     {internalStories.map((story) => (
                       <StoryCard key={story._id} story={story} source="internal" />
                     ))}
@@ -152,11 +153,12 @@ function Main() {
                     No classic stories available right now.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {externalStories.map((book) => (
                       <StoryCard key={book.id} story={book} source="external" />
                     ))}
                   </div>
+
                 )}
               </section>
             )}

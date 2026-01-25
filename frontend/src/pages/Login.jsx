@@ -3,9 +3,11 @@ import { useAuth } from "../context/AuthContext";
 import { googleLogin } from "../api/authApi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Mail, Lock, User } from "lucide-react";
-import Logo from "../components/BrandLogo"
+import Logo from "../assets/lat.png";
+
 function Login() {
-  const { Login, signup, loading, isAuthenticated } = useAuth();
+  const { Login, signup, loading, isAuthenticated, googleLoginSuccess } =
+    useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -19,22 +21,43 @@ function Login() {
     password: "",
   });
 
-  // ✅ Google auth setup
+  // ✅ Google Button Responsive Width
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(0);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      setGoogleBtnWidth(Math.min(360, window.innerWidth - 40));
+    };
+
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
+
+  // ✅ Google auth setup (re-render on width change)
   useEffect(() => {
     /* global google */
-    if (!window.google) return;
+    if (!window.google || !googleBtnWidth) return;
+
+    const el = document.getElementById("googleBtn");
+    if (!el) return;
+
+    el.innerHTML = "";
 
     google.accounts.id.initialize({
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       callback: handleGoogleLogin,
     });
 
-    google.accounts.id.renderButton(document.getElementById("googleBtn"), {
+    google.accounts.id.renderButton(el, {
       theme: "outline",
       size: "large",
-      width: 300,
+      width: googleBtnWidth,
     });
-  }, []);
+
+    console.log("CLIENT ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  }, [googleBtnWidth]);
 
   // ✅ redirect if already logged in
   useEffect(() => {
@@ -46,6 +69,7 @@ function Login() {
   const handleGoogleLogin = async (response) => {
     try {
       await googleLogin(response.credential);
+      await googleLoginSuccess();
       navigate(redirectTo, { replace: true });
     } catch (err) {
       console.error(err);
@@ -66,61 +90,26 @@ function Login() {
     } catch (err) {
       setErrorMsg(
         err.response?.data?.message ||
-          (isSignup ? "Signup failed" : "Invalid email or password")
+          (isSignup ? "Signup failed" : "Invalid email or password"),
       );
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-10">
+    <div className="h-screen overflow-hidden flex items-start justify-center bg-gray-50 px-2 pt-2 -mx">
       <div className="w-full max-w-md">
         {/* ✅ Top Heading */}
-        <div className="text-center mb-6">
- <div className="w-full flex justify-center mb-8">
-  <div
-    className="
-      flex items-center gap-4
-      px-6 py-3
-      bg-white
-      border border-gray-200/70
-      rounded-2xl
-      shadow-[0_8px_24px_rgba(15,23,42,0.06)]
-    "
-  >
-    {/* Logo Box */}
-    <div
-      className="
-        w-12 h-12
-        flex items-center justify-center
-        rounded-xl
-        bg-gradient-to-br from-emerald-50 to-white
-        border border-gray-200/60
-        shadow-sm
-        shrink-0
-      "
-    >
-      <div className="w-8 h-8">
-        {/* <Logo /> */}
-      </div>
-    </div>
+        <div className="text-center mb-2 sm:mb-5">
+          {/* ✅ Logo */}
+          <div className="w-full flex justify-center">
+            <img
+              src={Logo}
+              alt="StoryBuilder Logo"
+              className="w-24 h-24 sm:w-40 sm:h-40 object-contain -mt-2 sm:-mt-5"
+            />
+          </div>
 
-    {/* Brand Text */}
-    <div className="flex flex-col">
-      <h1 className="text-[18px] sm:text-[20px] font-bold text-slate-900 leading-5 tracking-tight">
-        Story<span className="text-emerald-600">Builder</span>
-      </h1>
-
-      <p className="text-[12px] sm:text-[13px] text-slate-500 leading-5">
-        Collaborative Story Platform
-      </p>
-    </div>
-  </div>
-</div>
-
-
-
-
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">
+          <h1 className="-mt-1 sm:mt-0 text-2xl font-bold text-gray-900">
             {isSignup ? "Create Account" : "Welcome Back"}
           </h1>
 
@@ -132,28 +121,31 @@ function Login() {
         </div>
 
         {/* ✅ Card */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 sm:p-7">
-          {/* Error */}
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-7">
+          {/* ✅ Error */}
           {errorMsg && (
-            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {errorMsg}
             </div>
           )}
 
           {/* ✅ Google button */}
-          <div className="flex justify-center">
-            <div id="googleBtn" className="w-full flex justify-center" />
+          <div className="w-full flex justify-center">
+            <div
+              id="googleBtn"
+              className="w-full flex justify-center overflow-hidden"
+            />
           </div>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
+          {/* ✅ Divider */}
+          <div className="flex items-center gap-3 my-3 sm:my-5">
             <div className="h-px flex-1 bg-gray-200" />
             <span className="text-xs text-gray-500">OR</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
           {/* ✅ Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {/* Name */}
             {isSignup && (
               <div>
@@ -228,7 +220,7 @@ function Login() {
           </form>
 
           {/* Switch */}
-          <div className="mt-5 text-center text-sm text-gray-600">
+          <div className="mt-4 sm:mt-5 text-center text-sm text-gray-600">
             {isSignup ? "Already have an account?" : "Don't have an account?"}
             <button
               type="button"
@@ -243,8 +235,8 @@ function Login() {
           </div>
         </div>
 
-        {/* Bottom tiny note */}
-        <p className="mt-5 text-center text-xs text-gray-400">
+        {/* Bottom note (hide on mobile to prevent scroll) */}
+        <p className="hidden sm:block mt-5 text-center text-xs text-gray-400">
           Secure login powered by StoryBuilder.
         </p>
       </div>

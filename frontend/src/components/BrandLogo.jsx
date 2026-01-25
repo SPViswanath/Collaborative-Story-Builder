@@ -1,4 +1,4 @@
-import Logo from "../assets/StoryBuilder-Logo - Copy.png";
+import Logo from "../assets/symbol.png";
 import { useNavigate } from "react-router-dom";
 function BrandLogo() {
     const navigate = useNavigate();
@@ -16,10 +16,10 @@ function BrandLogo() {
   />
 
   <h1
-    className="text-xl md:text-2xl font-bold tracking-tight text-gray-900"
+    className="text-xl md:text-2xl tracking-tight text-gray-900"
     style={{ fontFamily: "Montserrat, sans-serif" }}
   >
-    Story<span className="text-emerald-700">Builder</span>
+    STORY<span className="text-emerald-700">BUILDER</span>
   </h1>
 
 

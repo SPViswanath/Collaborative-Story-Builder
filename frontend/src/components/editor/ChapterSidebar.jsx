@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getChapterSidebar, createChapter } from "../../api/chapterApi";
 import { ChevronLeft, ChevronRight, X, Lock, Unlock ,Plus} from "lucide-react";
 import CreateChapterModal from "./CreateChapterModal";
-
+import {socket} from "../../socket";
 function ChapterSidebar({
   storyId,
   storyTitle = "Story",
@@ -24,27 +24,47 @@ function ChapterSidebar({
   const [openCreateBranch, setOpenCreateBranch] = useState(false);
   const [branchParent, setBranchParent] = useState(null);
 
+  //socket functions
+  useEffect(() => {
+    const onLockUpdated = ({ chapterId, chapter }) => {
+      setChapters((prev) =>
+        prev.map((c) => {
+          if (c._id !== chapterId) return c;
+          return { ...c, ...chapter, lockedBy: chapter.lockedBy || null };
+        })
+      );
+    };
+
+
+    socket.on("chapter:lockUpdated", onLockUpdated);
+
+    return () => {
+      socket.off("chapter:lockUpdated", onLockUpdated);
+    };
+  }, []);
+
+
   const loadSidebar = async () => {
     try {
-      setLoading(true);
-      const res = await getChapterSidebar(storyId);
-      const list = res.data.chapters || [];
-      setChapters(list);
-      onChaptersLoaded?.(list);
+        setLoading(true);
+        const res = await getChapterSidebar(storyId);
+        const list = res.data.chapters || [];
+        setChapters(list);
+        onChaptersLoaded?.(list);
     } catch (err) {
-      console.error(err.response?.data || err.message);
+        console.error(err.response?.data || err.message);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadSidebar();
+        loadSidebar();
   }, [storyId]);
 
   useEffect(() => {
-    if (!storyId) return;
-    loadSidebar();
+        if (!storyId) return;
+        loadSidebar();
   }, [reloadKey]);
 
 
@@ -197,13 +217,22 @@ function ChapterSidebar({
                           )}
                           
                           {/* ✅ Lock icon (ALWAYS visible) */}
-                          <span className="w-7 h-7 flex items-center justify-center">
-                            {ch.isLocked ? (
-                              <Lock size={16} className="text-gray-700" />
-                            ) : (
-                              <Unlock size={16} className="text-gray-400" />
+                          <div className="flex items-center gap-2">
+                            {ch.isLocked && ch.lockedBy?.name && (
+                              <span className="text-[11px] text-gray-600 truncate max-w-[80px]">
+                                {ch.lockedBy.name}
+                              </span>
                             )}
-                          </span>
+
+                            <span className="w-7 h-7 flex items-center justify-center">
+                              {ch.isLocked ? (
+                                <Lock size={16} className="text-gray-700" />
+                              ) : (
+                                <Unlock size={16} className="text-gray-400" />
+                              )}
+                            </span>
+                          </div>
+
                         </div>
                       )}
                     </button>

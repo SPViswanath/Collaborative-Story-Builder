@@ -104,7 +104,7 @@ function Welcome() {
               </button>
 
               <button
-                onClick={() => navigate("/discover")}
+                onClick={() => navigate("/main")}
                 className="px-5 py-3 rounded-xl bg-white/80 backdrop-blur border border-gray-200 text-gray-800 font-semibold hover:bg-white transition shadow-sm"
               >
                 Explore Stories
@@ -162,7 +162,7 @@ function Welcome() {
             </div>
 
             <button
-              onClick={() => navigate("/signup")}
+              onClick={() => navigate("/login")}
               className="hidden sm:inline-flex px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition text-gray-700 font-semibold shadow-sm"
             >
               Start Writing

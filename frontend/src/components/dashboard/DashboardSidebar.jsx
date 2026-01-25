@@ -18,7 +18,7 @@ function getInitials(name) {
   if (parts.length === 1) return parts[0][0]?.toUpperCase() || "U";
 
   const first = parts[0][0]?.toUpperCase() || "";
-  const last = parts[parts.length - 1][0]?.toUpperCase() || "";
+  const last = parts[parts.length - 1][0]?.toUpperCase() || "";   
   return (first + last) || "U";
 }
 
@@ -65,28 +65,26 @@ function DashboardSidebar({
   const { logout, user } = useAuth();
 
   return (
-   
-      <aside
-        className={`
-          fixed md:static 
-          top-16 left-0 z-50
-          h-[calc(100vh-4rem)]
-          bg-white border-r border-gray-200 flex flex-col shadow-sm
-          overflow-visible
-          transform transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0
+    <aside
+      className={`
+        fixed md:static 
+        top-16 left-0 z-50
+        h-[calc(100vh-4rem)]
+        bg-white border-r border-gray-200 flex flex-col shadow-sm
 
-          transition-[width] duration-300 ease-in-out
-          ${collapsed ? "md:w-20" : "md:w-64"}
-          w-72
+        overflow-visible
 
-          pointer-events-auto
-        `}
-      >
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        md:translate-x-0
 
+        transition-[width] duration-300 ease-in-out
+        ${collapsed ? "md:w-20" : "md:w-64"}
+        w-72
 
-
+        pointer-events-auto
+      `}
+    >
       {/* ✅ Mobile Header (Dashboard + Close in same line) */}
       <div className="md:hidden flex items-start justify-between px-4 py-4 border-b border-gray-100">
         <div className="flex items-start gap-3">
@@ -123,117 +121,115 @@ function DashboardSidebar({
         </button>
       </div>
 
-      {/* ✅ Desktop Collapse Toggle */}
+      {/* ✅ Desktop Collapse Toggle (must stay visible) */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -right-3 top-6 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-900 hover:bg-gray-50 shadow-sm transition-colors z-10"
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
-      <div className="flex flex-col h-full overflow-y-auto">
 
+      {/* ✅ TOP Section (NO SCROLL, arrow still visible) */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="px-3 pt-6">
+          {/* ✅ Desktop Header / Title */}
+          <div className="hidden md:block">
+            <div
+              className={`flex items-center px-1 ${
+                collapsed ? "justify-center" : "gap-3"
+              }`}
+            >
+              <div className="p-2 bg-gray-100 rounded-lg shrink-0">
+                <LayoutDashboard className="h-6 w-6 text-violet-700" />
+              </div>
 
-      {/* ✅ TOP Section */}
-      <div className="px-3 pt-6">
-        {/* ✅ Desktop Header / Title */}
-        <div className="hidden md:block">
-          <div
-            className={`flex items-center px-1 ${
-              collapsed ? "justify-center" : "gap-3"
-            }`}
-          >
-            <div className="p-2 bg-gray-100 rounded-lg shrink-0">
-              <LayoutDashboard className="h-6 w-6 text-gray-900" />
+              {!collapsed && (
+                <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">
+                  Dashboard
+                </h2>
+              )}
             </div>
-
-            {!collapsed && (
-              <h2 className="text-lg font-bold text-slate-800 whitespace-nowrap">
-                Dashboard
-              </h2>
-            )}
           </div>
+
+          {/* ✅ Navigation Items */}
+          <nav className="mt-4 space-y-1">
+            {/* Create */}
+            <button
+              onClick={() => {
+                setActive("create");
+                setSidebarOpen(false);
+              }}
+              className={`
+                w-full flex items-center
+                ${collapsed ? "justify-center px-2" : "px-3"}
+                py-2.5 rounded-lg transition-all duration-200
+                ${
+                  active === "create"
+                    ? "border border-gray-300 bg-gray-50 text-gray-900"
+                    : "border border-transparent text-slate-600 hover:bg-gray-50 hover:text-gray-900"
+                }
+              `}
+            >
+              <PlusCircle size={20} className="text-indigo-700" />
+              {!collapsed && (
+                <span className="ml-3 font-medium text-sm tracking-wide">
+                  Create a Story
+                </span>
+              )}
+            </button>
+
+            {/* Ongoing */}
+            <button
+              onClick={() => {
+                setActive("ongoing");
+                setSidebarOpen(false);
+              }}
+              className={`
+                w-full flex items-center
+                ${collapsed ? "justify-center px-2" : "px-3"}
+                py-2.5 rounded-lg transition-all duration-200
+                ${
+                  active === "ongoing"
+                    ? "border border-gray-300 bg-gray-50 text-gray-900"
+                    : "border border-transparent text-slate-600 hover:bg-gray-50 hover:text-gray-900"
+                }
+              `}
+            >
+              <BookOpen size={20} className="text-emerald-700" />
+              {!collapsed && (
+                <span className="ml-3 font-medium text-sm tracking-wide">
+                  My Ongoing Stories
+                </span>
+              )}
+            </button>
+
+            {/* Published */}
+            <button
+              onClick={() => {
+                setActive("published");
+                setSidebarOpen(false);
+              }}
+              className={`
+                w-full flex items-center
+                ${collapsed ? "justify-center px-2" : "px-3"}
+                py-2.5 rounded-lg transition-all duration-200
+                ${
+                  active === "published"
+                    ? "border border-gray-300 bg-gray-50 text-gray-900"
+                    : "border border-transparent text-slate-600 hover:bg-gray-50 hover:text-gray-900"
+                }
+              `}
+            >
+              <CheckCircle size={20} className="text-amber-700" />
+              {!collapsed && (
+                <span className="ml-3 font-medium text-sm tracking-wide">
+                  My Published Stories
+                </span>
+              )}
+            </button>
+          </nav>
         </div>
-
-        {/* ✅ Navigation Items */}
-        <nav className="mt-4 space-y-1">
-          {/* Create */}
-          <button
-            onClick={() => {
-              setActive("create");
-              setSidebarOpen(false);
-            }}
-            className={`
-              w-full flex items-center
-              ${collapsed ? "justify-center px-2" : "px-3"}
-              py-2.5 rounded-lg transition-all duration-200
-              ${
-                active === "create"
-                  ? "border border-gray-300 bg-gray-50 text-gray-900"
-                  : "border border-transparent text-slate-600 hover:bg-gray-50 hover:text-gray-900"
-              }
-            `}
-          >
-            <PlusCircle size={20} />
-            {!collapsed && (
-              <span className="ml-3 font-medium text-sm tracking-wide">
-                Create a Story
-              </span>
-            )}
-          </button>
-
-          {/* Ongoing */}
-          <button
-            onClick={() => {
-              setActive("ongoing");
-              setSidebarOpen(false);
-            }}
-            className={`
-              w-full flex items-center
-              ${collapsed ? "justify-center px-2" : "px-3"}
-              py-2.5 rounded-lg transition-all duration-200
-              ${
-                active === "ongoing"
-                  ? "border border-gray-300 bg-gray-50 text-gray-900"
-                  : "border border-transparent text-slate-600 hover:bg-gray-50 hover:text-gray-900"
-              }
-            `}
-          >
-            <BookOpen size={20} />
-            {!collapsed && (
-              <span className="ml-3 font-medium text-sm tracking-wide">
-                My Ongoing Stories
-              </span>
-            )}
-          </button>
-
-          {/* Published */}
-          <button
-            onClick={() => {
-              setActive("published");
-              setSidebarOpen(false);
-            }}
-            className={`
-              w-full flex items-center
-              ${collapsed ? "justify-center px-2" : "px-3"}
-              py-2.5 rounded-lg transition-all duration-200
-              ${
-                active === "published"
-                  ? "border border-gray-300 bg-gray-50 text-gray-900"
-                  : "border border-transparent text-slate-600 hover:bg-gray-50 hover:text-gray-900"
-              }
-            `}
-          >
-            <CheckCircle size={20} />
-            {!collapsed && (
-              <span className="ml-3 font-medium text-sm tracking-wide">
-                My Published Stories
-              </span>
-            )}
-          </button>
-        </nav>
       </div>
-      </div>
-
 
       {/* ✅ Bottom Logout */}
       <div className="mt-auto px-3 pb-6">

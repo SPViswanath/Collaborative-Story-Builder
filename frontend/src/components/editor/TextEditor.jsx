@@ -1,17 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-import {
-  getChapterContent,
-  saveChapterContent,
-  lockChapter,
-  unlockChapter,
-} from "../../api/chapterApi";
+import { getChapterContent, saveChapterContent } from "../../api/chapterApi";
 import { useAuth } from "../../context/AuthContext";
 import SpeechToTextButton from "./SpeechToTextButton";
+import { socket } from "../../socket";
 
 function TextEditor({
   selectedChapter,
+  storyId,
   setChapterDetails,
   sidebarLoaded,
   chapterDetails,
@@ -22,8 +19,9 @@ function TextEditor({
   const { user } = useAuth();
   const prevChapterIdRef = useRef(null);
 
-  // ✅ ReactQuill ref (needed to insert speech text at cursor)
   const quillRef = useRef(null);
+
+  const [waitingForLock, setWaitingForLock] = useState(false);
 
   const isLockedByOther =
     chapterDetails?.isLocked &&
@@ -38,45 +36,16 @@ function TextEditor({
     if (!quill) return;
 
     const range = quill.getSelection(true);
-
-    // If cursor is not available, insert at end
     const insertIndex =
       range?.index !== undefined ? range.index : quill.getLength();
 
     quill.insertText(insertIndex, text + " ");
     quill.setSelection(insertIndex + text.length + 1);
 
-    // ✅ Sync back to state (important for save)
     setContent(quill.root.innerHTML);
   };
 
-  useEffect(() => {
-    if (!selectedChapter?._id) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await getChapterContent(selectedChapter._id);
-        setChapterDetails?.(res.data.chapter || null);
-      } catch {}
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [selectedChapter?._id]);
-
-  useEffect(() => {
-    if (!selectedChapter?._id) return;
-
-    const heartbeat = setInterval(async () => {
-      try {
-        await lockChapter(selectedChapter._id);
-      } catch {
-        // console.log(`Chapter: ${chapterDetails?.title} locking mechanism failed...`);
-      }
-    }, 30000);
-
-    return () => clearInterval(heartbeat);
-  }, [selectedChapter?._id]);
-
+  // ✅ Load chapter content (REST API)
   useEffect(() => {
     async function loadContent() {
       if (!selectedChapter?._id) return;
@@ -97,58 +66,120 @@ function TextEditor({
     }
 
     loadContent();
-  }, [selectedChapter?._id]);
+  }, [selectedChapter?._id, setChapterDetails]);
 
+  // ✅ Lock/unlock using socket (ONLY ONCE) - NO POLLING
   useEffect(() => {
     const currentId = selectedChapter?._id;
     const prevId = prevChapterIdRef.current;
 
-    async function handleSwitchLock() {
-      try {
-        // ✅ unlock previous chapter if exists
-        if (prevId && prevId !== currentId) {
-          await unlockChapter(prevId);
-        }
+    if (!storyId) return;
+    if (!socket.connected) return;
 
-        // ✅ lock current chapter
-        if (currentId && !isLockedByOther) {
-          await lockChapter(currentId);
-        }
-
-        // ✅ refresh meta after lock
-        if (currentId) {
-          const res = await getChapterContent(currentId);
-          setChapterDetails?.(res.data.chapter || null);
-        }
-      } catch (err) {
-        console.log(err.response?.data || err.message);
-      }
+    // ✅ unlock previous
+    if (prevId && prevId !== currentId) {
+      socket.emit("chapter:unlock", { storyId, chapterId: prevId });
     }
 
-    handleSwitchLock();
+    // ✅ lock current
+    if (currentId) {
+      socket.emit("chapter:lock", { storyId, chapterId: currentId });
+    }
 
     prevChapterIdRef.current = currentId;
-  }, [selectedChapter?._id, isLockedByOther]);
+  }, [selectedChapter?._id, storyId]);
 
+  // ✅ Heartbeat: refresh lock while user stays in the same chapter
   useEffect(() => {
     const chapterId = selectedChapter?._id;
-    if (!chapterId) return;
+    if (!chapterId || !storyId) return;
+    if (!socket.connected) return;
 
-    const handleUnload = async () => {
-      try {
-        await unlockChapter(chapterId);
-      } catch {}
+    const interval = setInterval(() => {
+      socket.emit("chapter:lock", { storyId, chapterId });
+    }, 8000); // ✅ refresh every 8 seconds (safe)
+
+    return () => clearInterval(interval);
+  }, [selectedChapter?._id, storyId]);
+
+
+  // ✅ Listen realtime lock updates (REALTIME for both users)
+  useEffect(() => {
+    const onLockUpdated = ({ chapterId, chapter }) => {
+        if (selectedChapter?._id !== chapterId) return;
+
+        // ✅ merge update (prevents UI from needing reload)
+        setChapterDetails?.((prev) => {
+        if (!prev) return chapter;
+
+        return {
+            ...prev,
+            ...chapter,
+            isLocked: chapter?.isLocked ?? prev?.isLocked,
+            lockedBy:
+              chapter?.lockedBy === null
+                ? null
+                : chapter?.lockedBy ?? prev?.lockedBy,
+          };
+        });
+
+      // ✅ if this chapter became unlocked AND user was waiting, try to lock now
+      const lockedById = chapter?.lockedBy?._id?.toString();
+      const myId = user?.userId?.toString();
+
+      if (waitingForLock && chapter?.isLocked === false && lockedById !== myId) {
+          setTimeout(() => {
+            if (!socket.connected) return;
+            socket.emit("chapter:lock", { storyId, chapterId });
+          }, 80);
+
+          setWaitingForLock(false);
+        }
+      };
+
+      const onLockDenied = ({ chapterId, lockedBy }) => {
+        if (selectedChapter?._id !== chapterId) return;
+
+        setMsg(`Locked by ${lockedBy?.name || "another user"}`);
+
+        // ✅ mark as waiting so when unlocked, we try again
+        setWaitingForLock(true);
+      };
+
+      socket.on("chapter:lockUpdated", onLockUpdated);
+      socket.on("chapter:lockDenied", onLockDenied);
+
+      return () => {
+        socket.off("chapter:lockUpdated", onLockUpdated);
+        socket.off("chapter:lockDenied", onLockDenied);
+      };
+  }, [
+    selectedChapter?._id,
+    storyId,
+    user?.userId,
+    waitingForLock,
+    setChapterDetails,
+  ]);
+
+
+  // ✅ Unlock when leaving tab (extra safety)
+  useEffect(() => {
+    const chapterId = selectedChapter?._id;
+    if (!chapterId || !storyId) return;
+
+    const handleUnload = () => {
+      if (socket.connected) {
+        socket.emit("chapter:unlock", { storyId, chapterId });
+      }
     };
 
     window.addEventListener("beforeunload", handleUnload);
 
     return () => {
       window.removeEventListener("beforeunload", handleUnload);
-
-      // ✅ also unlock when component unmounts / user navigates away
       handleUnload();
     };
-  }, [selectedChapter?._id]);
+  }, [selectedChapter?._id, storyId]);
 
   const handleSave = async () => {
     if (!selectedChapter?._id) return;
@@ -198,14 +229,12 @@ function TextEditor({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      {/* Top small bar inside editor */}
       <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
         <p className="text-sm text-gray-700 font-medium">
           {selectedChapter?.title || "No chapter selected"}
         </p>
 
         <div className="flex items-center gap-2">
-          {/* ✅ Mic button (speech to text) */}
           <SpeechToTextButton
             disabled={isLockedByOther}
             activeChapterId={selectedChapter?._id}
@@ -226,12 +255,11 @@ function TextEditor({
         </div>
       </div>
 
-      {/* Editor Area */}
-      <div className="h-[calc(100vh-10.5rem)] p-3">
+      <div className="p-1.5">
         {loading ? (
           <div className="text-gray-500 text-sm">Loading editor...</div>
         ) : (
-          <div className="h-[calc(100vh-16rem)] overflow-hidden border border-gray-200 rounded-md">
+          <div className="min-h-[60vh] max-h-[calc(100vh-16rem)] overflow-hidden border border-gray-200 rounded-md">
             <ReactQuill
               ref={quillRef}
               value={content}
@@ -247,7 +275,7 @@ function TextEditor({
         )}
       </div>
 
-      {/* Message */}
+
       {msg && (
         <div className="px-4 py-2 border-t border-gray-200 text-sm text-gray-600">
           {msg}

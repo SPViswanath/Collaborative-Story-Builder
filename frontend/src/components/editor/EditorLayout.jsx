@@ -6,7 +6,7 @@ import TextEditor from "./TextEditor";
 import { getStoryById } from "../../api/storyApi";
 import Navbar from "../common/Navbar";
 import { getChapterContent } from "../../api/chapterApi";
-
+import { socket } from "../../socket";
 function EditorLayout({ storyId }) {
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [chapterDetails, setChapterDetails] = useState(null);
@@ -17,6 +17,27 @@ function EditorLayout({ storyId }) {
   const [collapsed, setCollapsed] = useState(false); // desktop
   const [sidebarLoaded, setSidebarLoaded] = useState(false);
   const [sidebarReloadKey, setSidebarReloadKey] = useState(0);
+
+  // socket connection
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
+
+    const joinRoom = () => {
+      socket.emit("story:join", { storyId });
+    };
+
+    socket.on("connect", joinRoom);
+
+    // If already connected, join immediately
+    if (socket.connected) joinRoom();
+
+    return () => {
+      socket.off("connect", joinRoom);
+      socket.disconnect();
+    };
+  }, [storyId]);
+
+
 
   useEffect(() => {
     async function loadStoryTitle() {
@@ -115,7 +136,8 @@ function EditorLayout({ storyId }) {
             <div className="flex-1 overflow-hidden">
               <div className="h-full overflow-y-auto p-4">
                 <TextEditor
-                sidebarLoaded={sidebarLoaded}
+                  storyId={storyId}
+                  sidebarLoaded={sidebarLoaded}
                   selectedChapter={selectedChapter}
                   setChapterDetails={setChapterDetails}
                   chapterDetails={chapterDetails}

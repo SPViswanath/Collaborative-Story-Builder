@@ -194,7 +194,7 @@ const NavLinks = ({ onClick }) => (
                       onClick={async () => {
                         setDropdownOpen(false);
                         await logout();
-                        navigate("/main", { replace: true });
+                        navigate("/", { replace: true });
                       }}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
                     >

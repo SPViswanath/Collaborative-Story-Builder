@@ -52,9 +52,13 @@ function EditorHeader({
             chapterDetails?.lockedBy &&
             chapterDetails.lockedBy._id?.toString() !== user?.userId?.toString() && (
               <p className="text-xs font-medium text-red-600">
-                This chapter is locked
+                Chapter is locked by{" "}
+                <span className="font-semibold">
+                  {chapterDetails.lockedBy.name || "another user"}
+                </span>
               </p>
-           )}
+          )}
+
 
         </div>
   

@@ -39,7 +39,7 @@ function Dashboard() {
       {/* NAVBAR */}
       <Navbar page="Dashboard" onMenuClick={() => setSidebarOpen(true)} />
 
-      <div className="flex">
+      <div className=" h-[calc(100vh-4rem)] flex overflow-hidden">
         {/* Mobile Overlay (ONLY when sidebar open) */}
         {sidebarOpen && (
           <div
