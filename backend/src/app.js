@@ -6,6 +6,7 @@ const testRoutes = require("./routes/testRoutes");
 const storyRoutes = require("./routes/storyRoutes");
 const chapterRoutes = require("./routes/chapterRoutes");
 const cookieParser = require("cookie-parser");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 app.use(cookieParser());
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/chapters", chapterRoutes);
+app.use("/api/user",userRoutes);
 
 /*
 test route

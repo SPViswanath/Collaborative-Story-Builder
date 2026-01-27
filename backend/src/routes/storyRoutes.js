@@ -12,6 +12,7 @@ const {createStory,
         deleteStory,
         getStoryById,
         getPublicStoryById,
+        updateStory,
         exportStoryPDF
     } = require("../controllers/storyController");
 
@@ -41,7 +42,8 @@ router.get("/public/:storyId", getPublicStoryById);
 
 router.delete("/:storyId", authMiddleware, deleteStory);
 
-router.get("/:storyId",authMiddleware, getStoryById);
+router.patch("/:storyId", authMiddleware, updateStory);
 
+router.get("/:storyId",authMiddleware, getStoryById);
 
 module.exports = router;

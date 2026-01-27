@@ -9,7 +9,9 @@ const {
   getPublicChapterSidebar,
   getPublicChapterContent,
   lockChapter,
-  unlockChapter
+  unlockChapter,
+  renameChapterTitle,
+  deleteChapter
 } = require("../controllers/chapterController");
 
 //create chapter
@@ -39,6 +41,20 @@ router.patch(
   "/:chapterId",
   authMiddleware,
   updateChapterContent
+);
+
+// ✅ rename chapter/branch title
+router.patch(
+  "/:chapterId/rename",
+  authMiddleware,
+  renameChapterTitle
+);
+
+// ✅ delete chapter/branch
+router.delete(
+  "/:chapterId",
+  authMiddleware,
+  deleteChapter
 );
 
 //lock the chapter

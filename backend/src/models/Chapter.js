@@ -58,7 +58,10 @@ const chapterSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
-
+        lockedSocketId: {
+            type: String,
+            default: null
+        },
     },
     {
         timestamps: true

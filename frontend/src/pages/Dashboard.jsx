@@ -4,7 +4,7 @@ import OngoingStories from "../components/dashboard/OngoingStories";
 import PublishedStories from "../components/dashboard/PublishedStories";
 import CreateStoryModal from "../components/story/CreateStoryModal";
 import Navbar from "../components/common/Navbar";
-
+import {ChevronRight} from "lucide-react";
 function Dashboard() {
   const [active, setActive] = useState("ongoing");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,13 +33,37 @@ function Dashboard() {
     };
   }, [sidebarOpen]);
 
-
   return (
     <div className="min-h-screen bg-gray-100 pt-16">
       {/* NAVBAR */}
-      <Navbar page="Dashboard" onMenuClick={() => setSidebarOpen(true)} />
+      <Navbar page="Dashboard" />
 
-      <div className=" h-[calc(100vh-4rem)] flex overflow-hidden">
+      <div className="h-[calc(100vh-4rem)] flex overflow-hidden relative">
+        {/* ✅ MOBILE: Floating "Open Sidebar" button (NOT hamburger) */}
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="
+              md:hidden
+              fixed left-1 top-[70px]
+              z-50
+              h-6 w-6
+              rounded-full
+              border border-gray-200
+              bg-white
+              shadow-md
+              flex items-center justify-center
+              text-gray-700
+              hover:bg-gray-50
+              transition
+            "
+            title="Open dashboard sidebar"
+          >
+             <ChevronRight size={14} />
+          </button>
+        )}
+
+
         {/* Mobile Overlay (ONLY when sidebar open) */}
         {sidebarOpen && (
           <div
@@ -75,7 +99,9 @@ function Dashboard() {
                 onCreated={(storyTitle) => {
                   setActive("ongoing");
                   const trimmed =
-                    storyTitle.length > 40 ? storyTitle.slice(0, 40) + "…" : storyTitle;
+                    storyTitle.length > 40
+                      ? storyTitle.slice(0, 40) + "…"
+                      : storyTitle;
                   setSuccessMessage(`Story "${trimmed}" created successfully.`);
                   setTimeout(() => setSuccessMessage(""), 3000);
                 }}
@@ -85,7 +111,6 @@ function Dashboard() {
           )}
         </main>
       </div>
-
     </div>
   );
 }

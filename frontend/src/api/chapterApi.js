@@ -30,10 +30,14 @@ export const createChapter = (storyId, title, parentChapter = null) =>
     parentChapter,
   });
 
-  // ✅ Public chapters list (for Reader - no login)
+// ✅ Public chapters list (for Reader - no login)
 export const getPublicChapterSidebar = (storyId) =>
   CHAPTER_API.get(`/public/sidebar/${storyId}`);
 
 // ✅ Public chapter content (for Reader - no login)
 export const getPublicChapterContent = (chapterId) =>
   CHAPTER_API.get(`/public/content/${chapterId}`);
+
+//rename api
+export const renameChapter = (chapterId, title) =>
+  CHAPTER_API.patch(`/${chapterId}/rename`, { title });

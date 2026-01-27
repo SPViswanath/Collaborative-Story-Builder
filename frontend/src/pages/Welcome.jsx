@@ -201,7 +201,7 @@ function Welcome() {
               </div>
 
               <button
-                onClick={() => navigate("/discover")}
+                onClick={() => navigate("/main")}
                 className="px-4 py-2 rounded-xl bg-white text-gray-900 font-semibold hover:bg-gray-100 transition"
               >
                 View Public Stories

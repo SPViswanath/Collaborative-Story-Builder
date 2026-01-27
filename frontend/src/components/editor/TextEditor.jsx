@@ -18,10 +18,27 @@ function TextEditor({
   const [msg, setMsg] = useState("");
   const { user } = useAuth();
   const prevChapterIdRef = useRef(null);
+  const lockRequestTimeoutRef = useRef(null); // ✅ For debouncing
+  const heartbeatIntervalRef = useRef(null); // ✅ Track heartbeat interval
 
   const quillRef = useRef(null);
 
-  const [waitingForLock, setWaitingForLock] = useState(false);
+  // ✅ Debounced lock request to prevent rapid-fire requests
+  const requestLock = (chapterId, immediate = false) => {
+    if (!storyId || !chapterId || !socket.connected) return;
+
+    if (lockRequestTimeoutRef.current) {
+      clearTimeout(lockRequestTimeoutRef.current);
+    }
+
+    if (immediate) {
+      socket.emit("chapter:lock", { storyId, chapterId });
+    } else {
+      lockRequestTimeoutRef.current = setTimeout(() => {
+        socket.emit("chapter:lock", { storyId, chapterId });
+      }, 100);
+    }
+  };
 
   const isLockedByOther =
     chapterDetails?.isLocked &&
@@ -68,101 +85,123 @@ function TextEditor({
     loadContent();
   }, [selectedChapter?._id, setChapterDetails]);
 
-  // ✅ Lock/unlock using socket (ONLY ONCE) - NO POLLING
+  // ✅ Lock current chapter + unlock previous (switching chapters)
   useEffect(() => {
     const currentId = selectedChapter?._id;
     const prevId = prevChapterIdRef.current;
 
     if (!storyId) return;
-    if (!socket.connected) return;
+    if (!socket.connected) {
+      console.warn("❌ Socket not connected, can't lock chapter");
+      return;
+    }
 
-    // ✅ unlock previous
+    // ✅ Clear any pending lock requests
+    if (lockRequestTimeoutRef.current) {
+      clearTimeout(lockRequestTimeoutRef.current);
+    }
+
+    // ✅ Clear existing heartbeat
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+
     if (prevId && prevId !== currentId) {
       socket.emit("chapter:unlock", { storyId, chapterId: prevId });
     }
 
-    // ✅ lock current
     if (currentId) {
-      socket.emit("chapter:lock", { storyId, chapterId: currentId });
+      // ✅ Request lock immediately when switching
+      requestLock(currentId, true);
     }
 
     prevChapterIdRef.current = currentId;
   }, [selectedChapter?._id, storyId]);
 
-  // ✅ Heartbeat: refresh lock while user stays in the same chapter
+  // ✅ HEARTBEAT: renew lock lease while staying in same chapter
   useEffect(() => {
-    const chapterId = selectedChapter?._id;
-    if (!chapterId || !storyId) return;
+    if (!selectedChapter?._id) return;
+    if (!storyId) return;
     if (!socket.connected) return;
 
-    const interval = setInterval(() => {
-      socket.emit("chapter:lock", { storyId, chapterId });
-    }, 8000); // ✅ refresh every 8 seconds (safe)
+    // ✅ Clear existing interval before creating new one
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+    }
 
-    return () => clearInterval(interval);
+    // ✅ Send heartbeat every 4 seconds (TTL is 12s, so 3x safety margin)
+    heartbeatIntervalRef.current = setInterval(() => {
+      if (socket.connected) {
+        requestLock(selectedChapter._id, true);
+      } else {
+        console.warn("❌ Socket disconnected, skipping heartbeat");
+      }
+    }, 10000);
+
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+    };
   }, [selectedChapter?._id, storyId]);
 
+  // ✅ Handle socket reconnection
+  useEffect(() => {
+    const handleReconnect = () => {
+      console.log("✅ Socket reconnected, re-locking chapter");
+      if (selectedChapter?._id && storyId) {
+        requestLock(selectedChapter._id, true);
+      }
+    };
 
-  // ✅ Listen realtime lock updates (REALTIME for both users)
+    socket.on("connect", handleReconnect);
+
+    return () => {
+      socket.off("connect", handleReconnect);
+    };
+  }, [selectedChapter?._id, storyId]);
+
+  // ✅ Listen realtime lock updates
   useEffect(() => {
     const onLockUpdated = ({ chapterId, chapter }) => {
-        if (selectedChapter?._id !== chapterId) return;
+      if (selectedChapter?._id !== chapterId) return;
 
-        // ✅ merge update (prevents UI from needing reload)
-        setChapterDetails?.((prev) => {
+      setChapterDetails?.((prev) => {
         if (!prev) return chapter;
 
         return {
-            ...prev,
-            ...chapter,
-            isLocked: chapter?.isLocked ?? prev?.isLocked,
-            lockedBy:
-              chapter?.lockedBy === null
-                ? null
-                : chapter?.lockedBy ?? prev?.lockedBy,
-          };
-        });
+          ...prev,
+          ...chapter,
+          isLocked: chapter?.isLocked ?? prev?.isLocked,
+          lockedBy:
+            chapter?.lockedBy === null
+              ? null
+              : (chapter?.lockedBy ?? prev?.lockedBy),
+        };
+      });
 
-      // ✅ if this chapter became unlocked AND user was waiting, try to lock now
-      const lockedById = chapter?.lockedBy?._id?.toString();
-      const myId = user?.userId?.toString();
+      if (chapter?.isLocked === false) {
+        setMsg("");
+      }
+    };
 
-      if (waitingForLock && chapter?.isLocked === false && lockedById !== myId) {
-          setTimeout(() => {
-            if (!socket.connected) return;
-            socket.emit("chapter:lock", { storyId, chapterId });
-          }, 80);
+    const onLockDenied = ({ chapterId, lockedBy }) => {
+      if (selectedChapter?._id !== chapterId) return;
+      setMsg(`Locked by ${lockedBy?.name || "another user"}`);
+    };
 
-          setWaitingForLock(false);
-        }
-      };
+    socket.on("chapter:lockUpdated", onLockUpdated);
+    socket.on("chapter:lockDenied", onLockDenied);
 
-      const onLockDenied = ({ chapterId, lockedBy }) => {
-        if (selectedChapter?._id !== chapterId) return;
+    return () => {
+      socket.off("chapter:lockUpdated", onLockUpdated);
+      socket.off("chapter:lockDenied", onLockDenied);
+    };
+  }, [selectedChapter?._id, setChapterDetails]);
 
-        setMsg(`Locked by ${lockedBy?.name || "another user"}`);
-
-        // ✅ mark as waiting so when unlocked, we try again
-        setWaitingForLock(true);
-      };
-
-      socket.on("chapter:lockUpdated", onLockUpdated);
-      socket.on("chapter:lockDenied", onLockDenied);
-
-      return () => {
-        socket.off("chapter:lockUpdated", onLockUpdated);
-        socket.off("chapter:lockDenied", onLockDenied);
-      };
-  }, [
-    selectedChapter?._id,
-    storyId,
-    user?.userId,
-    waitingForLock,
-    setChapterDetails,
-  ]);
-
-
-  // ✅ Unlock when leaving tab (extra safety)
+  // ✅ Unlock when leaving tab
   useEffect(() => {
     const chapterId = selectedChapter?._id;
     if (!chapterId || !storyId) return;
@@ -177,6 +216,15 @@ function TextEditor({
 
     return () => {
       window.removeEventListener("beforeunload", handleUnload);
+
+      // ✅ Cleanup timeouts
+      if (lockRequestTimeoutRef.current) {
+        clearTimeout(lockRequestTimeoutRef.current);
+      }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+
       handleUnload();
     };
   }, [selectedChapter?._id, storyId]);
@@ -228,9 +276,10 @@ function TextEditor({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-        <p className="text-sm text-gray-700 font-medium">
+    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      {/* ✅ Top bar */}
+      <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between bg-white">
+        <p className="text-sm text-gray-700 font-medium truncate">
           {selectedChapter?.title || "No chapter selected"}
         </p>
 
@@ -255,34 +304,41 @@ function TextEditor({
         </div>
       </div>
 
-      <div className="p-1.5">
+      {/* ✅ Editor Area */}
+      <div className="p-3">
         {loading ? (
-          <div className="text-gray-500 text-sm">Loading editor...</div>
+          <div className="text-gray-500 text-sm px-1 py-2">
+            Loading editor...
+          </div>
         ) : (
-          <div className="min-h-[60vh] max-h-[calc(100vh-16rem)] overflow-hidden border border-gray-200 rounded-md">
-            <ReactQuill
-              ref={quillRef}
-              value={content}
-              onChange={(val) => {
-                if (isLockedByOther) return;
-                setContent(val);
-              }}
-              readOnly={isLockedByOther}
-              theme="snow"
-              className="h-full"
-            />
+          <div className="border border-gray-200 rounded-md overflow-hidden bg-white">
+            {/* ✅ This wrapper gives professional fixed height */}
+            <div className="h-[calc(100vh-16rem)]">
+              <ReactQuill
+                ref={quillRef}
+                value={content}
+                onChange={(val) => {
+                  if (isLockedByOther) return;
+                  setContent(val);
+                }}
+                readOnly={isLockedByOther}
+                theme="snow"
+                className="h-full"
+              />
+            </div>
           </div>
         )}
       </div>
 
-
+      {/* ✅ Status message */}
       {msg && (
-        <div className="px-4 py-2 border-t border-gray-200 text-sm text-gray-600">
+        <div className="px-4 py-2 border-t border-gray-200 text-sm text-gray-600 bg-white">
           {msg}
         </div>
       )}
     </div>
   );
+
 }
 
 export default TextEditor;

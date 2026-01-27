@@ -113,6 +113,11 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateUserInContext = (newUser) => {
+    setUsers(newUser);
+  };
+
+
   return (
     <AuthContext.Provider
       value={{
@@ -123,6 +128,7 @@ export function AuthProvider({ children }) {
         logout,
         user,
         googleLoginSuccess,
+        updateUserInContext,
       }}
     >
       {children}

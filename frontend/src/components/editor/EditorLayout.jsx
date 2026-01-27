@@ -7,18 +7,31 @@ import { getStoryById } from "../../api/storyApi";
 import Navbar from "../common/Navbar";
 import { getChapterContent } from "../../api/chapterApi";
 import { socket } from "../../socket";
+import { useAuth } from "../../context/AuthContext";
+
+
 function EditorLayout({ storyId }) {
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [chapterDetails, setChapterDetails] = useState(null);
   const [storyTitle, setStoryTitle] = useState("Story");
-
+  const { user } = useAuth();
+  const [canEdit, setCanEdit] = useState(true);
   // sidebar control
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile
   const [collapsed, setCollapsed] = useState(false); // desktop
   const [sidebarLoaded, setSidebarLoaded] = useState(false);
   const [sidebarReloadKey, setSidebarReloadKey] = useState(0);
+  const storageKey = `sb_lastChapter_${user?.userId || "guest"}_${storyId}`;
+  
+  useEffect(() => {
+    if (selectedChapter?._id) {
+      localStorage.setItem(storageKey, selectedChapter._id);
+    }
+  }, [selectedChapter?._id, storageKey]);
+
 
   // socket connection
+
   useEffect(() => {
     if (!socket.connected) socket.connect();
 
@@ -43,10 +56,27 @@ function EditorLayout({ storyId }) {
     async function loadStoryTitle() {
       try {
         const res = await getStoryById(storyId);
+
         setStoryTitle(res.data.story?.title || "Story");
+
+        // ✅ basic edit permission (author/collaborator)
+        const story = res.data.story;
+        const myId = user?.userId?.toString();
+
+        const authorId =
+          story?.author?._id?.toString?.() || story?.author?.toString?.();
+
+        const collaborators = story?.collaborators || [];
+
+        const isAuthor = myId && authorId && myId === authorId;
+        const isCollaborator =
+          myId && collaborators.some((id) => id.toString() === myId);
+
+        setCanEdit(isAuthor || isCollaborator);
       } catch (err) {
         console.error(err.response?.data || err.message);
         setStoryTitle("Story");
+        setCanEdit(false);
       }
     }
 
@@ -108,10 +138,17 @@ function EditorLayout({ storyId }) {
                 onChaptersLoaded={(chapters) => {
                   setSidebarLoaded(true);
 
-                  if (!selectedChapter && chapters.length > 0) {
-                    setSelectedChapter(chapters[0]);
+                  if (chapters.length === 0) return;
+
+                  // ✅ Restore last opened chapter on refresh
+                  const savedId = localStorage.getItem(storageKey);
+
+                  if (!selectedChapter) {
+                    const found = chapters.find((c) => c._id === savedId);
+                    setSelectedChapter(found || chapters[0]);
                   }
                 }}
+                canEdit={canEdit}
 
               />
             </div>

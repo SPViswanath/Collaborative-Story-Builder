@@ -11,6 +11,7 @@ function StoryCard({
   onAddCollaborator,
   onViewCollaborators,
   onDeleteStory,
+  onEditStory,
   hideAddCollaborator = false,
   viewOnlyCollaborators = false,
 }) {
@@ -168,6 +169,20 @@ function StoryCard({
                       </span>
                     )}
                   </button>
+
+                  <button
+                    onClick={() => {
+                      onEditStory?.(story); // ✅ send full story object
+                      setOpenMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
+                  >
+                    Edit story details
+                    <span className="block text-xs text-gray-500 font-normal">
+                      (title / cover image)
+                    </span>
+                  </button>
+
 
                   <button
                     onClick={() => {

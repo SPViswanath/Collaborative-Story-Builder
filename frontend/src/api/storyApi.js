@@ -64,3 +64,7 @@ export const fetchExternalTextByUrl = (url) => axios.get(url);
 // ✅ Public story details (for Reader - no login)
 export const getPublicStoryById = (storyId) =>
   INTERNAL_API.get(`/public/${storyId}`);
+
+// ✅ update story (author only)
+export const updateStory = (storyId, data) =>
+  INTERNAL_API.patch(`/${storyId}`, data);

@@ -1,8 +1,21 @@
 import { useEffect, useState } from "react";
 import { getChapterSidebar, createChapter } from "../../api/chapterApi";
-import { ChevronLeft, ChevronRight, X, Lock, Unlock ,Plus} from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Lock,
+  Unlock,
+  Pencil,
+  Trash2,
+  MoreVertical,
+} from "lucide-react";
 import CreateChapterModal from "./CreateChapterModal";
-import {socket} from "../../socket";
+import { socket } from "../../socket";
+import { useRef } from "react";
+import RenameChapterModal from "./RenameChapterModal";
+// import { useAuth } from "../../context/AuthContext";
+
 function ChapterSidebar({
   storyId,
   storyTitle = "Story",
@@ -14,7 +27,8 @@ function ChapterSidebar({
   setCollapsed,
   onChaptersLoaded,
   reloadKey,
-}){
+  canEdit,
+}) {
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
@@ -23,6 +37,40 @@ function ChapterSidebar({
   const [openCreateChapter, setOpenCreateChapter] = useState(false);
   const [openCreateBranch, setOpenCreateBranch] = useState(false);
   const [branchParent, setBranchParent] = useState(null);
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [openRenameModal, setOpenRenameModal] = useState(false);
+  const [renameTarget, setRenameTarget] = useState(null);
+
+  //from context
+  // const { user } = useAuth();
+  // const currentUserId = user?._id || user?.id;
+
+  // const isLockedByOtherUser = (chapter) => {
+  //   if (!chapter.isLocked) return false;
+  //   if (!chapter.lockedBy?._id) return false;
+  //   if (!currentUserId) return false;
+
+  //   return String(chapter.lockedBy._id) !== String(currentUserId);
+  // };
+
+  //ref
+  const actionMenuRef = useRef(null);
+  //ref useEffect
+  useEffect(() => {
+      function handleOutside(e) {
+        if (
+          actionMenuRef.current &&
+          !actionMenuRef.current.contains(e.target)
+        ) {
+          setOpenActionMenuId(null);
+        }
+      }
+
+      document.addEventListener("mousedown", handleOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
 
   //socket functions
   useEffect(() => {
@@ -30,11 +78,19 @@ function ChapterSidebar({
       setChapters((prev) =>
         prev.map((c) => {
           if (c._id !== chapterId) return c;
-          return { ...c, ...chapter, lockedBy: chapter.lockedBy || null };
-        })
+          return {
+            ...c,
+            ...chapter,
+            lockedBy: chapter.lockedBy
+              ? typeof chapter.lockedBy === "object"
+                ? chapter.lockedBy
+                : c.lockedBy
+              : null,
+          };
+
+        }),
       );
     };
-
 
     socket.on("chapter:lockUpdated", onLockUpdated);
 
@@ -43,30 +99,28 @@ function ChapterSidebar({
     };
   }, []);
 
-
   const loadSidebar = async () => {
     try {
-        setLoading(true);
-        const res = await getChapterSidebar(storyId);
-        const list = res.data.chapters || [];
-        setChapters(list);
-        onChaptersLoaded?.(list);
+      setLoading(true);
+      const res = await getChapterSidebar(storyId);
+      const list = res.data.chapters || [];
+      setChapters(list);
+      onChaptersLoaded?.(list);
     } catch (err) {
-        console.error(err.response?.data || err.message);
+      console.error(err.response?.data || err.message);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-        loadSidebar();
+    loadSidebar();
   }, [storyId]);
 
   useEffect(() => {
-        if (!storyId) return;
-        loadSidebar();
+    if (!storyId) return;
+    loadSidebar();
   }, [reloadKey]);
-
 
   // ✅ For indentation: group branches under parent
   const normalChapters = chapters.filter((c) => !c.isBranch);
@@ -140,15 +194,13 @@ function ChapterSidebar({
         {loading ? (
           <div className="text-sm text-gray-500 px-3 py-2">Loading...</div>
         ) : chapters.length === 0 ? (
-          <div className="text-sm text-gray-500 px-3 py-2">
-            No chapters yet
-          </div>
+          <div className="text-sm text-gray-500 px-3 py-2">No chapters yet</div>
         ) : (
           <div className="space-y-2 mt-2">
             {normalChapters.map((ch) => {
               const chapterBranches = getBranchesOf(ch._id);
               const isExpanded = expanded[ch._id] ?? false;
-              
+
               return (
                 <div key={ch._id} className="space-y-1">
                   {/* ✅ Chapter item (hover shows + branch) */}
@@ -158,7 +210,7 @@ function ChapterSidebar({
                     <button
                       onClick={() => {
                         setSelectedChapter(ch);
-                        setSidebarOpen(false); // ✅ mobile auto close
+                        setSidebarOpen(false);
                       }}
                       className={`
                         group w-full flex items-center justify-between
@@ -179,10 +231,10 @@ function ChapterSidebar({
                         <span className="text-sm font-semibold">C</span>
                       )}
 
-                      {/* ✅ RIGHT: Actions INSIDE item */}
+                      {/* ✅ RIGHT: Actions */}
                       {!collapsed && (
                         <div className="flex items-center gap-2 shrink-0">
-                          {/* ✅ Dropdown toggle (mobile always visible) */}
+                          {/* Expand toggle */}
                           {chapterBranches.length > 0 && (
                             <span
                               onClick={(e) => {
@@ -192,78 +244,191 @@ function ChapterSidebar({
                                   [ch._id]: !(prev[ch._id] ?? false),
                                 }));
                               }}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  setExpanded((prev) => ({
-                                    ...prev,
-                                    [ch._id]: !(prev[ch._id] ?? false),
-                                  }));
-                                }
-                              }}
-                             className="
-                                w-7 h-7 inline-flex items-center justify-center rounded-md
-                                hover:bg-gray-200 text-gray-700 cursor-pointer select-none
-                                md:opacity-0 md:group-hover:opacity-100 md:transition-opacity
-                              "
-
-
+                              className="w-7 h-7 inline-flex items-center justify-center rounded-md hover:bg-gray-200 text-gray-700 cursor-pointer select-none"
                               title={isExpanded ? "Collapse" : "Expand"}
                             >
                               {isExpanded ? "▾" : "▸"}
                             </span>
                           )}
-                          
-                          {/* ✅ Lock icon (ALWAYS visible) */}
-                          <div className="flex items-center gap-2">
-                            {ch.isLocked && ch.lockedBy?.name && (
-                              <span className="text-[11px] text-gray-600 truncate max-w-[80px]">
-                                {ch.lockedBy.name}
-                              </span>
-                            )}
 
-                            <span className="w-7 h-7 flex items-center justify-center">
-                              {ch.isLocked ? (
-                                <Lock size={16} className="text-gray-700" />
-                              ) : (
-                                <Unlock size={16} className="text-gray-400" />
-                              )}
+                          {/* Locked by name */}
+                          {ch.isLocked && ch.lockedBy?.name && (
+                            <span className="text-[11px] text-gray-600 truncate max-w-[80px]">
+                              {ch.lockedBy.name}
                             </span>
-                          </div>
+                          )}
 
+                          {/* ✅ Three dot menu */}
+                          {canEdit && (
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenActionMenuId((prev) => (prev === ch._id ? null : ch._id));
+                                }}
+                                className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-gray-200 transition"
+                                title="Actions"
+                              >
+                                <MoreVertical size={18} className="text-gray-700" />
+                              </button>
+
+                              {openActionMenuId === ch._id && (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      setRenameTarget(ch);
+                                      setOpenRenameModal(true);
+                                      setOpenActionMenuId(null);
+
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                                  >
+                                    <Pencil size={16} />
+                                    Rename
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    disabled={ch.isLocked && ch.lockedBy?._id}
+                                    onClick={() => {
+                                      if (ch.isLocked && ch.lockedBy?._id) return;
+                                      setOpenActionMenuId(null);
+                                      console.log("Delete:", ch._id);
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm ${
+                                      ch.isLocked && ch.lockedBy?._id
+                                        ? "text-gray-400 cursor-not-allowed"
+                                        : "hover:bg-red-50 text-red-600"
+                                    }`}
+                                  >
+                                    <Trash2 size={16} />
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Lock icon */}
+                          <span className="w-8 h-8 flex items-center justify-center">
+                            {ch.isLocked ? (
+                              <Lock size={16} className="text-gray-700" />
+                            ) : (
+                              <Unlock size={16} className="text-gray-400" />
+                            )}
+                          </span>
                         </div>
                       )}
                     </button>
-                    
+
                   </div>
 
-
-
-
                   {/* ✅ Branch list under chapter */}
-                 {!collapsed && chapterBranches.length > 0 && isExpanded && (
+                  {!collapsed && chapterBranches.length > 0 && isExpanded && (
                     <div className="ml-5 border-l border-gray-200 pl-3 space-y-1">
-                      {chapterBranches.map((b) => (
-                        <button
-                          key={b._id}
-                          onClick={() => {
-                            setSelectedChapter(b);
-                            setSidebarOpen(false);
-                          }}
-                          className={`
-                            w-full text-left px-3 py-2 rounded-md border text-sm transition
-                            ${
-                              selectedChapter?._id === b._id
+                     {chapterBranches.map((b) => (
+                        <div key={b._id} className="relative">
+                          <button
+                            onClick={() => {
+                              setSelectedChapter(b);
+                              setSidebarOpen(false);
+                            }}
+                            className={`
+                              group w-full flex items-center justify-between
+                              px-3 py-2 rounded-md border text-sm transition
+                              ${
+                                selectedChapter?._id === b._id
                                   ? "bg-gray-100 text-gray-900 border-gray-300"
                                   : "bg-white border-gray-200 hover:bg-gray-100"
-                            }
-                          `}
-                        >
-                          {b.title}
-                        </button>
+                              }
+                            `}
+                          >
+                            <span className="truncate">{b.title}</span>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {/* Locked by */}
+                              {b.isLocked && b.lockedBy?.name && (
+                                <span className="text-[11px] text-gray-600 truncate max-w-[70px]">
+                                  {b.lockedBy.name}
+                                </span>
+                              )}
+
+                              {/* Menu */}
+                              {canEdit && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenActionMenuId((prev) => (prev === b._id ? null : b._id));
+                                  }}
+                                  className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-gray-200 transition"
+                                  title="Actions"
+                                >
+                                  <MoreVertical size={18} className="text-gray-700" />
+                                </button>
+                              )}
+
+                              {/* Lock */}
+                              <span className="w-8 h-8 flex items-center justify-center">
+                                {b.isLocked ? (
+                                  <Lock size={16} className="text-gray-700" />
+                                ) : (
+                                  <Unlock size={16} className="text-gray-400" />
+                                )}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* Branch dropdown */}
+                          {openActionMenuId === b._id && canEdit && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-2 top-full mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden"
+                            >
+                              <button
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  setRenameTarget(b);
+                                  setOpenRenameModal(true);
+                                  setOpenActionMenuId(null);
+                                  // TODO: open rename modal
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                              >
+                                <Pencil size={16} />
+                                Rename
+                              </button>
+
+                              <button
+                                disabled={b.isLocked && b.lockedBy?._id}
+                                onClick={() => {
+                                  if (b.isLocked && b.lockedBy?._id) return;
+
+                                  setOpenActionMenuId(null);
+                                  console.log("Delete branch:", b._id);
+                                  // TODO: open delete modal
+                                }}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm 
+                                  ${
+                                    b.isLocked && b.lockedBy?._id
+                                      ? "text-gray-400 cursor-not-allowed"
+                                      : "hover:bg-red-50 text-red-600"
+                                  }
+                                `}
+                              >
+                                <Trash2 size={16} />
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       ))}
+
                     </div>
                   )}
                 </div>
@@ -303,7 +468,24 @@ function ChapterSidebar({
             await loadSidebar();
           }}
         />
-      )}
+      )}g
+
+      {/*rename modal */}
+      {openRenameModal && renameTarget && (
+          <RenameChapterModal
+            chapter={renameTarget}
+            onClose={() => {
+              setOpenRenameModal(false);
+              setRenameTarget(null);
+            }}
+            onSuccess={async () => {
+              await loadSidebar();
+              setOpenRenameModal(false);
+              setRenameTarget(null);
+            }}
+          />
+        )}
+
     </div>
   );
 }

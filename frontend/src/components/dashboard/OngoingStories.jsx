@@ -3,12 +3,14 @@ import {
   getOngoingStories,
   publishToggle,
   deleteStory,
+  updateStory, // ✅ ADD
 } from "../../api/storyApi";
 import StoryCard from "../story/StoryCard";
 import { useAuth } from "../../context/AuthContext";
 import AddCollaboratorModal from "../story/AddCollaborator";
 import CollaboratorsModal from "../story/Collaborators";
 import ConfirmModal from "../common/ConfirmModal";
+import EditStoryModal from "../story/EditStoryModal"; // ✅ ADD
 
 function OngoingStories() {
   const [stories, setStories] = useState([]);
@@ -22,6 +24,10 @@ function OngoingStories() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // ✅ Edit story modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editStoryData, setEditStoryData] = useState(null);
 
   const fetchStories = async () => {
     if (authLoading) return;
@@ -65,6 +71,12 @@ function OngoingStories() {
     setShowDeleteModal(true);
   };
 
+  // ✅ OPEN EDIT MODAL
+  const openEditStoryModal = (story) => {
+    setEditStoryData(story);
+    setShowEditModal(true);
+  };
+
   const handlePublishToggle = async (storyId) => {
     try {
       await publishToggle(storyId);
@@ -83,6 +95,33 @@ function OngoingStories() {
     } finally {
       setShowDeleteModal(false);
       setActiveStoryId(null);
+    }
+  };
+
+  // ✅ CONFIRM EDIT STORY
+  const handleConfirmEditStory = async (data) => {
+    try {
+      if (!editStoryData?._id) return;
+
+      const payload = {};
+
+      if (typeof data?.title === "string") payload.title = data.title;
+      if (typeof data?.coverImage === "string") payload.coverImage = data.coverImage;
+
+      const res = await updateStory(editStoryData._id, payload);
+
+      // ✅ update local state instantly (no reload)
+      const updatedStory = res.data.story;
+
+      setStories((prev) =>
+        prev.map((s) => (s._id === updatedStory._id ? updatedStory : s))
+      );
+
+      setShowEditModal(false);
+      setEditStoryData(null);
+    } catch (err) {
+      console.error(err.response?.data || err.message);
+      alert(err.response?.data?.message || "Failed to update story");
     }
   };
 
@@ -107,13 +146,30 @@ function OngoingStories() {
               source="internal"
               mode="dashboard"
               onPublishToggle={() => handlePublishToggle(story._id)}
-              onAddCollaborator={() => openAddCollaboratorModal(story._id, story.title)}
-              onViewCollaborators={() => openViewCollaboratorsModal(story._id, story.title)}
-
+              onAddCollaborator={() =>
+                openAddCollaboratorModal(story._id, story.title)
+              }
+              onViewCollaborators={() =>
+                openViewCollaboratorsModal(story._id, story.title)
+              }
               onDeleteStory={() => openDeleteConfirm(story._id)}
+              onEditStory={() => openEditStoryModal(story)} // ✅ ADD
             />
           ))}
         </div>
+      )}
+
+      {/* ✅ Edit Story Modal */}
+      {showEditModal && (
+        <EditStoryModal
+          open={showEditModal}
+          story={editStoryData}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditStoryData(null);
+          }}
+          onConfirm={handleConfirmEditStory}
+        />
       )}
 
       {showAddModal && (

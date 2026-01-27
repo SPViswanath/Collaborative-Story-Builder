@@ -337,7 +337,9 @@ const getStoryById = async (req, res) => {
   try {
     const { storyId } = req.params;
 
-    const story = await Story.findById(storyId).populate("author", "name");
+    const story = await Story.findById(storyId)
+      .populate("author", "name")
+      .select("title description coverImage author collaborators isPublished createdAt updatedAt");
 
     if (!story) {
       return res.status(404).json({ message: "Story not found" });
@@ -356,10 +358,16 @@ const getStoryById = async (req, res) => {
       story: {
         _id: story._id,
         title: story.title,
+        description: story.description,
+        coverImage: story.coverImage,
         author: story.author,
+        collaborators: story.collaborators, // ✅ ADD THIS
         isPublished: story.isPublished,
+        createdAt: story.createdAt,
+        updatedAt: story.updatedAt,
       },
     });
+
   } catch (err) {
     res.status(500).json({
       message: "Failed to fetch story",
@@ -403,6 +411,49 @@ const getPublicStoryById = async (req, res) => {
   }
 };
 
+//update story details
+const updateStory = async (req, res) => {
+  try {
+    const { storyId } = req.params;
+    const { title, coverImage } = req.body;
+
+    const story = await Story.findById(storyId);
+    if (!story) {
+      return res.status(404).json({ message: "Story not found" });
+    }
+
+    // ✅ Only author can edit story details
+    if (story.author.toString() !== req.userId) {
+      return res.status(403).json({ message: "Only author can edit the story" });
+    }
+
+    // ✅ Update only what comes
+    if (typeof title === "string") {
+      const trimmed = title.trim();
+      if (!trimmed) {
+        return res.status(400).json({ message: "Title cannot be empty" });
+      }
+      story.title = trimmed;
+    }
+
+    if (typeof coverImage === "string") {
+      story.coverImage = coverImage.trim();
+    }
+
+    await story.save();
+
+    return res.status(200).json({
+      message: "Story updated successfully",
+      story,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Failed to update story",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = { createStory, 
                     addCollaborator,
                     getMyOngoingStories,
@@ -414,5 +465,6 @@ module.exports = { createStory,
                     deleteStory,
                     getStoryById,
                     getPublicStoryById,
+                    updateStory,
                     exportStoryPDF
                 };
