@@ -1,106 +1,113 @@
 const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
 
-const generateStoryPDF = async (story, chapters, res) => {
+module.exports = async function generateStoryPDF(story, chapters, res) {
   const doc = new PDFDocument({
-    margin: 50,
-    size: "A4"
+    size: "A4",
+    margins: { top: 50, bottom: 50, left: 50, right: 50 },
+    bufferPages: true, 
   });
 
-  /* -------------------- RESPONSE HEADERS -------------------- */
+  // Error handling to prevent 500 server crashes
+  doc.on('error', (err) => {
+    console.error("PDF Generation Error:", err);
+    if (!res.headersSent) res.status(500).send("Generation failed");
+  });
+
+  /* ---------- HTTP HEADERS ---------- */
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
     "Content-Disposition",
-    `attachment; filename="${story.title}.pdf"`
+    `attachment; filename="${story.title.replace(/\s+/g, '_')}.pdf"`
   );
 
   doc.pipe(res);
 
-  /* -------------------- COLORS & FONTS -------------------- */
-  const TITLE_COLOR = "#1F2937";     // Dark gray
-  const TEXT_COLOR = "#374151";      // Medium gray
-  const ACCENT_COLOR = "#2563EB";    // Blue
+  const COLORS = {
+    TITLE: "#0F172A",
+    TEXT: "#334155",
+    ACCENT: "#059669", 
+    MUTED: "#64748B"
+  };
 
-  /* -------------------- STORY TITLE -------------------- */
+  /* ---------- BRANDED LOGO (TOP OF FIRST PAGE ONLY) ---------- */
+  const logoPath = path.join(__dirname, "../assests/image.png"); // Using spelling from your screenshot
+  
+  if (fs.existsSync(logoPath)) {
+    doc.image(logoPath, 50, 30, { width: 140 });
+  }
+
+  // A subtle divider line under the logo
   doc
-    .font("Helvetica-Bold")
-    .fontSize(24)
-    .fillColor(TITLE_COLOR)
-    .text(story.title, {
-      align: "center"
-    });
-
-  doc.moveDown(0.5);
-
-  // Horizontal line under title
-  doc
-    .strokeColor(ACCENT_COLOR)
-    .lineWidth(2)
-    .moveTo(100, doc.y)
-    .lineTo(500, doc.y)
+    .strokeColor("#E2E8F0")
+    .lineWidth(0.5)
+    .moveTo(50, 75)
+    .lineTo(545, 75)
     .stroke();
 
-  doc.moveDown(1.5);
+  /* ---------- STORY CONTENT ---------- */
+  doc.moveDown(4);
 
-  /* -------------------- STORY DESCRIPTION -------------------- */
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(26)
+    .fillColor(COLORS.TITLE)
+    .text(story.title, { align: "left" });
+
+  doc.moveDown(1);
+
   if (story.description) {
     doc
       .font("Helvetica")
-      .fontSize(13)
-      .fillColor(TEXT_COLOR)
-      .text(story.description, {
-        align: "justify",
-        lineGap: 4
-      });
-
-    doc.moveDown(2);
+      .fontSize(12)
+      .fillColor(COLORS.TEXT)
+      .text(story.description, { align: "justify", lineGap: 4 });
   }
 
-  /* -------------------- CHAPTERS -------------------- */
+  doc.moveDown(2);
+
+  /* ---------- CHAPTERS ---------- */
   chapters.forEach((chapter, index) => {
-
-    // Chapter heading background
-    const startY = doc.y;
-    doc
-      .rect(50, startY - 5, 495, 28)
-      .fill("#EFF6FF");
+    // If we are near the bottom of a page, start the chapter on a fresh page
+    if (doc.y > 700) doc.addPage();
 
     doc
-      .fillColor(ACCENT_COLOR)
       .font("Helvetica-Bold")
-      .fontSize(16)
-      .text(
-        `Chapter ${index + 1}: ${chapter.title}`,
-        60,
-        startY
-      );
+      .fontSize(18)
+      .fillColor(COLORS.ACCENT)
+      .text(`Chapter ${index + 1}: ${chapter.title}`);
 
-    doc.moveDown(1.5);
+    doc.moveDown(0.5);
 
-    // Chapter content
     doc
       .font("Helvetica")
-      .fontSize(12)
-      .fillColor(TEXT_COLOR)
-      .text(chapter.content || " ", {
+      .fontSize(11)
+      .fillColor(COLORS.TEXT)
+      .text(chapter.content || "", {
         align: "justify",
-        lineGap: 6
+        lineGap: 5,
+        paragraphGap: 10
       });
 
     doc.moveDown(2);
   });
 
-  /* -------------------- FOOTER -------------------- */
-  doc
-    .fontSize(10)
-    .fillColor("#6B7280")
-    .text(
-      "Generated using Story Builder Platform",
-      50,
-      doc.page.height - 50,
-      { align: "center" }
-    );
+  /* ---------- FOOTER (PAGE NUMBERS ONLY) ---------- */
+  const range = doc.bufferedPageRange();
+  for (let i = range.start; i < range.start + range.count; i++) {
+    doc.switchToPage(i);
+    
+    doc
+      .fontSize(8)
+      .fillColor(COLORS.MUTED)
+      .text(
+        `Page ${i + 1} of ${range.count} — StoryBuilder`,
+        50,
+        doc.page.height - 40,
+        { align: "center", width: 495 }
+      );
+  }
 
   doc.end();
 };
-
-module.exports = generateStoryPDF;

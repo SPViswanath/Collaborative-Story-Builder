@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import defaultImage from "../../assets/default-story.webp";
 import { useAuth } from "../../context/AuthContext";
+import { Download } from "lucide-react";
+import { downloadStoryPDF } from "../../api/storyApi";
 
 function StoryCard({
   story,
@@ -14,6 +16,7 @@ function StoryCard({
   onEditStory,
   hideAddCollaborator = false,
   viewOnlyCollaborators = false,
+  isPublishedSection = false,
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -24,7 +27,7 @@ function StoryCard({
 
   const imageUrl =
     source === "internal"
-      ? story?.coverImage || defaultImage
+      ? story.coverImage?.url || defaultImage
       : story?.formats?.["image/jpeg"] || defaultImage;
 
   const title = story?.title || "Untitled Story";
@@ -40,7 +43,7 @@ function StoryCard({
   const handleCardClick = () => {
     if (mode !== "dashboard") {
       navigate(
-        `/reader/${source}/${source === "internal" ? story._id : story.id}`
+        `/reader/${source}/${source === "internal" ? story._id : story.id}`,
       );
       return;
     }
@@ -72,13 +75,37 @@ function StoryCard({
     };
   }, [openMenu]);
 
+  const handleDownloadPDF = async (e) => {
+    e.stopPropagation();
+
+    try {
+      const res = await downloadStoryPDF(story._id);
+
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${story.title}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download failed", err);
+      alert("Failed to download PDF");
+    }
+  };
+
   return (
-    <div
-      onClick={handleCardClick}
-      className="bg-white rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-shadow relative overflow-visible cursor-pointer md:h-[170px] flex flex-col"
-    >
+    <div className="bg-white rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-shadow relative overflow-visible md:h-[170px] flex flex-col">
       {/* ✅ Image fixed height (desktop smaller) */}
-      <div className="h-[140px] md:h-[120px] w-full">
+      <div
+        className="h-[140px] md:h-[120px] w-full cursor-pointer relative z-10"
+        onClick={handleCardClick}
+      >
+
         {/* ✅ Mobile */}
         <div className="block md:hidden h-full">
           <img
@@ -102,28 +129,47 @@ function StoryCard({
             className="w-full h-full object-cover rounded-t-lg border-b border-gray-300"
           />
         </div>
+        {/* ✅ PDF Download (Explore only) */}
+        {mode === "main" && (
+          <button
+            onClick={handleDownloadPDF}
+            title="Download as PDF"
+            className="
+                absolute top-2 right-2 z-20
+                bg-white/90 hover:bg-white
+                border border-gray-300
+                rounded-full p-2
+                shadow-sm transition
+                cursor-pointer
+              "
+          >
+            <Download size={16} className="text-gray-700" />
+          </button>
+        )}
       </div>
 
       {/* ✅ Bottom section SMALLER in desktop */}
-      <div className="px-3 py-2 md:py-0 flex items-center gap-2 md:h-12">
+      <div className="px-3 py-2 md:py-0 flex items-center gap-2 md:h-12 flex-1">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-700 line-clamp-1 leading-4">
             {title}
           </p>
         </div>
 
-        <div className="relative w-10 flex justify-end">
-          {mode === "dashboard" && isAuthor ? (
+        <div className="relative w-10 flex justify-end z-50 pointer-events-auto">
+          {mode !== "main" && isAuthor ? (
             <>
+              
               <button
                 ref={buttonRef}
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setOpenMenu((prev) => !prev);
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                title="More options"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors z-50 pointer-events-auto"
               >
+
                 ⋮
               </button>
 
@@ -133,26 +179,30 @@ function StoryCard({
                   onClick={(e) => e.stopPropagation()}
                   className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-300 rounded-lg shadow-lg z-50"
                 >
-                  <button
-                    onClick={() => {
-                      navigate(`/editor/${story._id}`);
-                      setOpenMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
-                  >
-                    Open in editor
-                  </button>
+                  {!isPublishedSection && (
+                    <>
+                      <button
+                        onClick={() => {
+                          navigate(`/editor/${story._id}`);
+                          setOpenMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
+                      >
+                        Open in editor
+                      </button>
 
-                  {!hideAddCollaborator && (
-                    <button
-                      onClick={() => {
-                        onAddCollaborator?.(story._id);
-                        setOpenMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
-                    >
-                      Add a collaborator
-                    </button>
+                      {!hideAddCollaborator && (
+                        <button
+                          onClick={() => {
+                            onAddCollaborator?.(story._id);
+                            setOpenMenu(false);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
+                        >
+                          Add a collaborator
+                        </button>
+                      )}
+                    </>
                   )}
 
                   <button
@@ -170,19 +220,20 @@ function StoryCard({
                     )}
                   </button>
 
-                  <button
-                    onClick={() => {
-                      onEditStory?.(story); // ✅ send full story object
-                      setOpenMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
-                  >
-                    Edit story details
-                    <span className="block text-xs text-gray-500 font-normal">
-                      (title / cover image)
-                    </span>
-                  </button>
-
+                  {!isPublishedSection && (
+                    <button
+                      onClick={() => {
+                        onEditStory?.(story); // ✅ send full story object
+                        setOpenMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors duration-150 border-b border-gray-200 font-medium text-gray-800"
+                    >
+                      Edit story details
+                      <span className="block text-xs text-gray-500 font-normal">
+                        (title / cover image)
+                      </span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {

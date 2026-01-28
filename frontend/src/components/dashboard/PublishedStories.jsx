@@ -35,7 +35,7 @@ function PublishedStories() {
     } catch (error) {
       console.error(
         "Error fetching stories:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
     } finally {
       setLoading(false);
@@ -104,8 +104,9 @@ function PublishedStories() {
               story={story}
               source="internal"
               mode="dashboard"
-              hideAddCollaborator={true} // ✅ hide add collaborator in published
-              viewOnlyCollaborators={true} // ✅ view-only text in menu
+              isPublishedSection={true}
+              hideAddCollaborator={true}
+              viewOnlyCollaborators={true}
               onViewCollaborators={() =>
                 openViewCollaboratorsModal(story._id, story.title)
               }

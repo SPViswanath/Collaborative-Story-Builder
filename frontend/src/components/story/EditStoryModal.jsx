@@ -3,25 +3,44 @@ import defaultImage from "../../assets/default-story.webp";
 
 function EditStoryModal({ open, story, onClose, onConfirm }) {
   const [title, setTitle] = useState("");
-  const [coverImage, setCoverImage] = useState("");
+  //coverimg states
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState("");
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
 
     setTitle(story?.title || "");
-    setCoverImage(story?.coverImage || "");
+    setCoverPreview(story?.coverImage?.url || defaultImage);
+    setCoverFile(null);
   }, [open, story]);
 
-  const previewImage = useMemo(() => {
-    const img = coverImage?.trim();
-    return img ? img : defaultImage;
-  }, [coverImage]);
-
   const titleChanged = title.trim() !== (story?.title || "").trim();
-  const coverChanged = coverImage.trim() !== (story?.coverImage || "").trim();
+  const coverChanged = !!coverFile;
 
   const hasChanges = titleChanged || coverChanged;
+
+  const handleCoverChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setCoverFile(file);
+
+    const previewUrl = URL.createObjectURL(file);
+    setCoverPreview(previewUrl);
+  };
+
+  //clean-up effect
+  useEffect(() => {
+    return () => {
+      if (typeof coverPreview === "string" && coverPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(coverPreview);
+      }
+    };
+  }, [coverPreview]);
+
 
   if (!open) return null;
 
@@ -51,14 +70,14 @@ function EditStoryModal({ open, story, onClose, onConfirm }) {
         {/* Body */}
         <div className="p-4 space-y-4">
           {/* Preview */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="relative w-full aspect-[16/9] rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
             <img
-              src={previewImage}
+              src={coverPreview || defaultImage}
               alt="cover-preview"
               onError={(e) => {
                 e.currentTarget.src = defaultImage;
               }}
-              className="w-full h-40 object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
             />
           </div>
 
@@ -75,19 +94,51 @@ function EditStoryModal({ open, story, onClose, onConfirm }) {
             />
           </div>
 
-          {/* Cover URL */}
           <div>
             <label className="text-sm font-medium text-gray-800">
-              Cover image URL
+              Cover image
             </label>
+
+            {/* Drop zone */}
+            <label
+              htmlFor="cover-upload"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
+                if (!file) return;
+
+                setCoverFile(file);
+                setCoverPreview(URL.createObjectURL(file));
+              }}
+              className="mt-2 flex flex-col items-center justify-center
+                        border-2 border-dashed border-gray-300
+                        rounded-lg h-32 cursor-pointer
+                        hover:border-gray-400 transition text-sm text-gray-600"
+            >
+              {coverPreview ? (
+                <span>Change image</span>
+              ) : (
+                <>
+                  <span className="font-medium">Click to upload</span>
+                  <span className="text-xs text-gray-400 mt-1">
+                    or drag & drop
+                  </span>
+                </>
+              )}
+            </label>
+
+            {/* Hidden file input */}
             <input
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="Paste image URL (Cloudinary link later)"
-              className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
+              id="cover-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleCoverChange}
+              className="hidden"
             />
+
             <p className="text-xs text-gray-500 mt-1">
-              For now: paste URL. Next we’ll integrate Cloudinary upload.
+              JPG / PNG / WEBP • Max 5MB
             </p>
           </div>
         </div>
@@ -106,10 +157,14 @@ function EditStoryModal({ open, story, onClose, onConfirm }) {
             onClick={async () => {
               setSaving(true);
               try {
-                await onConfirm?.({
-                  title: title.trim(),
-                  coverImage: coverImage.trim(),
-                });
+                const formData = new FormData();
+                formData.append("title", title.trim());
+
+                if (coverFile) {
+                  formData.append("image", coverFile);
+                }
+
+                await onConfirm(formData);
               } finally {
                 setSaving(false);
               }

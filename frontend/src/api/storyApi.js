@@ -65,6 +65,27 @@ export const fetchExternalTextByUrl = (url) => axios.get(url);
 export const getPublicStoryById = (storyId) =>
   INTERNAL_API.get(`/public/${storyId}`);
 
+export const uploadStoryCover = (storyId, file) => {
+  const formData = new FormData();
+  formData.append("image", file); // MUST match multer
+
+  return INTERNAL_API.put(
+    `/${storyId}/image`, 
+    formData,
+    {
+      withCredentials: true,
+      headers: { "Content-Type": "multipart/form-data" },
+    }
+  );
+};
 // ✅ update story (author only)
 export const updateStory = (storyId, data) =>
   INTERNAL_API.patch(`/${storyId}`, data);
+
+export const downloadStoryPDF = async (storyId) => {
+  return INTERNAL_API.get(`/${storyId}/export/pdf`, {
+    responseType: "blob",     
+  });
+};
+
+

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
+const upload = require("../middleware/uploadImage");
 const {createStory, 
         addCollaborator, 
         getMyOngoingStories,
@@ -13,6 +14,7 @@ const {createStory,
         getStoryById,
         getPublicStoryById,
         updateStory,
+        uploadStoryImage,
         exportStoryPDF
     } = require("../controllers/storyController");
 
@@ -26,7 +28,7 @@ router.get("/my/published", authMiddleware, getMyPublishedStories);
 
 router.patch("/:storyId/publish",authMiddleware,publishToggleStory);
 
-router.get("/:storyId/export/pdf",authMiddleware,exportStoryPDF);
+router.get("/:storyId/export/pdf",exportStoryPDF);
 
 router.get("/published", getPublicPublishedStories);
 
@@ -45,5 +47,12 @@ router.delete("/:storyId", authMiddleware, deleteStory);
 router.patch("/:storyId", authMiddleware, updateStory);
 
 router.get("/:storyId",authMiddleware, getStoryById);
+
+router.put(
+  "/:storyId/image",
+  authMiddleware,
+  upload.single("image"),
+  uploadStoryImage
+);
 
 module.exports = router;

@@ -23,10 +23,17 @@ const storySchema = new mongoose.Schema(
             },
         ],
 
-        coverImage:{
-            type:String,
-            default:""
+        coverImage: {
+            url: {
+                type: String,
+                default: ""
+            },
+            publicId: {
+                type: String,
+                default: ""
+            }
         },
+
         
         isPublished: {
             type: Boolean,
@@ -38,3 +45,4 @@ const storySchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model("story",storySchema);
+

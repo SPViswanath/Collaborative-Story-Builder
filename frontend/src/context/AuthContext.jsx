@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
 
         if (isMounted) {
           setIsAuthenticated(true);
-          setUsers(res.data);
+          setUsers({ ...res.data, id: res.data._id || res.data.id });
         }
       } catch {
         if (isMounted) {
@@ -49,7 +49,7 @@ export function AuthProvider({ children }) {
         withCredentials: true,
       });
 
-      setUsers(res.data);
+      setUsers({ ...res.data, id: res.data._id || res.data.id });
       setIsAuthenticated(true);
     } catch (err) {
       console.error("Login failed:", err.response?.data?.message);
@@ -70,7 +70,7 @@ export function AuthProvider({ children }) {
         withCredentials: true,
       });
 
-      setUsers(res.data);
+      setUsers({ ...res.data, id: res.data._id || res.data.id });
       setIsAuthenticated(true);
     } catch (err) {
       console.error("Signup failed:", err.response?.data?.message);
@@ -87,7 +87,7 @@ export function AuthProvider({ children }) {
         withCredentials: true,
       });
 
-      setUsers(res.data);
+      setUsers({ ...res.data, id: res.data._id || res.data.id });
       setIsAuthenticated(true);
     } catch (err) {
       console.error("Fetch user failed:", err.response?.data?.message);

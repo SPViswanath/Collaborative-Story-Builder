@@ -11,6 +11,7 @@ import AddCollaboratorModal from "../story/AddCollaborator";
 import CollaboratorsModal from "../story/Collaborators";
 import ConfirmModal from "../common/ConfirmModal";
 import EditStoryModal from "../story/EditStoryModal"; // ✅ ADD
+import { uploadStoryCover } from "../../api/storyApi";
 
 function OngoingStories() {
   const [stories, setStories] = useState([]);
@@ -43,7 +44,7 @@ function OngoingStories() {
     } catch (error) {
       console.error(
         "Error fetching stories:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
     } finally {
       setLoading(false);
@@ -106,7 +107,8 @@ function OngoingStories() {
       const payload = {};
 
       if (typeof data?.title === "string") payload.title = data.title;
-      if (typeof data?.coverImage === "string") payload.coverImage = data.coverImage;
+      if (typeof data?.coverImage === "string")
+        payload.coverImage = data.coverImage;
 
       const res = await updateStory(editStoryData._id, payload);
 
@@ -114,7 +116,7 @@ function OngoingStories() {
       const updatedStory = res.data.story;
 
       setStories((prev) =>
-        prev.map((s) => (s._id === updatedStory._id ? updatedStory : s))
+        prev.map((s) => (s._id === updatedStory._id ? updatedStory : s)),
       );
 
       setShowEditModal(false);
@@ -160,7 +162,7 @@ function OngoingStories() {
       )}
 
       {/* ✅ Edit Story Modal */}
-      {showEditModal && (
+      {showEditModal && editStoryData && (
         <EditStoryModal
           open={showEditModal}
           story={editStoryData}
@@ -168,7 +170,29 @@ function OngoingStories() {
             setShowEditModal(false);
             setEditStoryData(null);
           }}
-          onConfirm={handleConfirmEditStory}
+          onConfirm={async (formData) => {
+            try {
+              // 1️⃣ update title
+              await updateStory(editStoryData._id, {
+                title: formData.get("title"),
+              });
+
+              // 2️⃣ upload cover if present
+              const image = formData.get("image");
+              if (image) {
+                await uploadStoryCover(editStoryData._id, image);
+              }
+
+              await fetchStories();
+
+              // ✅ CLOSE MODAL AFTER SUCCESS
+              setShowEditModal(false);
+              setEditStoryData(null);
+            } catch (err) {
+              console.error(err);
+              alert("Failed to update story");
+            }
+          }}
         />
       )}
 
