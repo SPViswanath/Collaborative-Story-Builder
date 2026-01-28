@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getChapterSidebar, createChapter } from "../../api/chapterApi";
+import { getChapterSidebar, createChapter,deleteChapter} from "../../api/chapterApi";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,7 +15,6 @@ import { socket } from "../../socket";
 import { useRef } from "react";
 import RenameChapterModal from "./RenameChapterModal";
 import DeleteChapterModal from "./DeleteChapterModal";
-import { deleteChapter } from "../../api/chapterApi";
 import { useAuth } from "../../context/AuthContext";
 
 function ChapterSidebar({

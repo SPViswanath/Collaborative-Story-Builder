@@ -1,91 +1,67 @@
-import axios from "axios";
+import API from "./api";
+import axios from "axios"; // only for external
 
-/* INTERNAL STORIES (your backend) */
-const INTERNAL_API = axios.create({
-  baseURL: "http://localhost:5000/api/stories",
-  withCredentials: true,
-});
+// internal stories
+export const createStory = (data) =>
+  API.post("/api/stories", data);
 
-/* EXTERNAL STORIES (Gutenberg) */
+export const getOngoingStories = () =>
+  API.get("/api/stories/my/ongoing");
+
+export const getMyPublishedStories = () =>
+  API.get("/api/stories/my/published");
+
+export const getPublicPublishedStories = () =>
+  API.get("/api/stories/published");
+
+export const addCollaborator = (storyId, email) =>
+  API.post(`/api/stories/${storyId}/collaborators`, { email });
+
+export const getCollaborators = (storyId) =>
+  API.get(`/api/stories/${storyId}/collaborators`);
+
+export const removeCollaborator = (storyId, collaboratorId) =>
+  API.delete(`/api/stories/${storyId}/collaborators/${collaboratorId}`);
+
+export const publishToggle = (storyId) =>
+  API.patch(`/api/stories/${storyId}/publish`);
+
+export const deleteStory = (storyId) =>
+  API.delete(`/api/stories/${storyId}`);
+
+export const getStoryById = (storyId) =>
+  API.get(`/api/stories/${storyId}`);
+
+export const getPublicStoryById = (storyId) =>
+  API.get(`/api/stories/public/${storyId}`);
+
+export const updateStory = (storyId, data) =>
+  API.patch(`/api/stories/${storyId}`, data);
+
+export const uploadStoryCover = (storyId, file) => {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  return API.put(`/api/stories/${storyId}/image`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const downloadStoryPDF = (storyId) =>
+  API.get(`/api/stories/${storyId}/export/pdf`, {
+    responseType: "blob",
+  });
+
+/* External Gutenberg API (keep as-is) */
 const EXTERNAL_API = axios.create({
   baseURL: "https://gutendex.com",
 });
 
-/* ===== CREATE STORY ===== */
-export const createStory = (data) => INTERNAL_API.post("/", data);
+export const getExternalStories = () =>
+  EXTERNAL_API.get("/books");
 
-/* ===== DASHBOARD STORIES ===== */
-
-// ongoing stories (author + collaborators)
-export const getOngoingStories = () => INTERNAL_API.get("/my/ongoing");
-
-// published stories (author + collaborators)
-export const getMyPublishedStories = () => INTERNAL_API.get("/my/published");
-
-/* ===== PUBLIC STORIES (for reader) ===== */
-export const getPublicPublishedStories = () => INTERNAL_API.get("/published");
-
-/* ===== COLLABORATORS ===== */
-
-// add collaborator (author only)
-export const addCollaborator = (storyId, email) =>
-  INTERNAL_API.post(`/${storyId}/collaborators`, { email });
-
-// get collaborators list (author only)
-export const getCollaborators = (storyId) =>
-  INTERNAL_API.get(`/${storyId}/collaborators`);
-
-// remove collaborator (author only)
-export const removeCollaborator = (storyId, collaboratorId) =>
-  INTERNAL_API.delete(`/${storyId}/collaborators/${collaboratorId}`);
-
-/* ===== STORY ACTIONS ===== */
-
-// publish/unpublish (author only)
-export const publishToggle = (storyId) =>
-  INTERNAL_API.patch(`/${storyId}/publish`);
-
-// delete story (author only)
-export const deleteStory = (storyId) => INTERNAL_API.delete(`/${storyId}`);
-
-/* ===== EXTERNAL: public-domain books ===== */
-export const getExternalStories = () => EXTERNAL_API.get("/books");
-
-export const getStoryById = (storyId) =>
-    INTERNAL_API.get(`/${storyId}`);
-
-// ✅ External book details by id
 export const getExternalStoryById = (bookId) =>
   EXTERNAL_API.get(`/books/${bookId}`);
 
-// ✅ Fetch readable text from a direct URL (plain text / html)
-export const fetchExternalTextByUrl = (url) => axios.get(url);
-
-// ✅ Public story details (for Reader - no login)
-export const getPublicStoryById = (storyId) =>
-  INTERNAL_API.get(`/public/${storyId}`);
-
-export const uploadStoryCover = (storyId, file) => {
-  const formData = new FormData();
-  formData.append("image", file); // MUST match multer
-
-  return INTERNAL_API.put(
-    `/${storyId}/image`, 
-    formData,
-    {
-      withCredentials: true,
-      headers: { "Content-Type": "multipart/form-data" },
-    }
-  );
-};
-// ✅ update story (author only)
-export const updateStory = (storyId, data) =>
-  INTERNAL_API.patch(`/${storyId}`, data);
-
-export const downloadStoryPDF = async (storyId) => {
-  return INTERNAL_API.get(`/${storyId}/export/pdf`, {
-    responseType: "blob",     
-  });
-};
-
-
+export const fetchExternalTextByUrl = (url) =>
+  axios.get(url);

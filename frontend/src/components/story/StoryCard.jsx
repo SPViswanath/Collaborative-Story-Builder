@@ -130,7 +130,7 @@ function StoryCard({
           />
         </div>
         {/* ✅ PDF Download (Explore only) */}
-        {mode === "main" && (
+        {mode === "main" && source === "internal" && (
           <button
             onClick={handleDownloadPDF}
             title="Download as PDF"
