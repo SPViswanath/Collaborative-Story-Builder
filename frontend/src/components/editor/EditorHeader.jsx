@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import CreateChapterModal from "./CreateChapterModal";
+import CreateChapterModal from "./CreateChapterModal.jsx";
 import { createChapter } from "../../api/chapterApi";
 import {useAuth} from "../../context/AuthContext"
 function EditorHeader({
