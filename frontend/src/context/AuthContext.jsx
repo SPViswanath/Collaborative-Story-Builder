@@ -59,7 +59,6 @@ export function AuthProvider({ children }) {
       console.error("Login failed:", err.response?.data?.message);
       setIsAuthenticated(false);
       setUser(null);
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -81,7 +80,7 @@ export function AuthProvider({ children }) {
       console.error("Signup failed:", err.response?.data?.message);
       setIsAuthenticated(false);
       setUser(null);
-      throw err;
+      
     } finally {
       setLoading(false);
     }
