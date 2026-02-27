@@ -116,9 +116,14 @@ function EditorHeader({
             placeholder="Enter branch title"
             onClose={() => setOpenCreateBranch(false)}
             onCreate={async (title) => {
-              await createChapter(storyId, title, selectedChapter._id);
-              setOpenCreateBranch(false);
-              onBranchCreated?.();
+              try {
+                await createChapter(storyId, title, selectedChapter._id);
+                setOpenCreateBranch(false);
+                onBranchCreated?.();
+              } catch (err) {
+                // Re-throw error so modal can display it
+                throw err;
+              }
             }}
           />
         )}

@@ -152,10 +152,10 @@ function StoryCard({
 
         {/* ✅ Description tooltip on hover (only if description exists) */}
         {mode === "main" && source === "internal" && story?.description && (
-          <div className="absolute left-0 bottom-full mb-2 w-full px-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[100]">
-            <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl">
-              <p className="line-clamp-3">{story.description}</p>
-              <div className="absolute left-4 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          <div className="absolute left-0 top-full mt-2 w-full px-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[100]">
+            <div className="bg-white border border-gray-200 text-gray-700 text-xs rounded-lg p-3 shadow-xl relative">
+              <div className="absolute left-6 -top-2 w-4 h-4 bg-white border-t border-l border-gray-200 rotate-45"></div>
+              <p className="line-clamp-3 relative z-10">{story.description}</p>
             </div>
           </div>
         )}

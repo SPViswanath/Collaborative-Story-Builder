@@ -46,8 +46,11 @@ const storySchema = new mongoose.Schema(
 );
 
 // ✅ Add indexes for optimized queries
+// ✅ Add indexes for optimized queries
 storySchema.index({ isPublished: 1 });
 storySchema.index({ isPublished: 1, updatedAt: -1 });
+storySchema.index({ author: 1 });
+storySchema.index({ collaborators: 1 });
 
 module.exports = mongoose.model("story",storySchema);
 

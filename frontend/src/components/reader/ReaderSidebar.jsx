@@ -45,7 +45,7 @@ function ReaderSidebar({
   };
 
   return (
-    <div className={`h-125 flex flex-col bg-white overflow-hidden ${!isMobile ? 'border-r border-gray-200' : ''}`}>
+    <div className={`${isMobile ? 'h-auto' : 'h-125'} flex flex-col bg-white overflow-hidden ${!isMobile ? 'border-r border-gray-200' : ''}`}>
       {/* Header - Only show on desktop */}
       {!isMobile && (
         <div className="px-4 py-3 border-b border-gray-200 shrink-0">
@@ -62,8 +62,8 @@ function ReaderSidebar({
       {/* List */}
       <div className="flex-1 overflow-y-auto px-2 py-3">
         {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="space-y-2 mt-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
                 className="h-10 bg-gray-100 rounded-md animate-pulse"

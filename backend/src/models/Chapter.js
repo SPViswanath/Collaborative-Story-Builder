@@ -68,4 +68,8 @@ const chapterSchema = new mongoose.Schema(
     }
 );
 
+// ✅ Add indexes
+chapterSchema.index({ story: 1, order: 1 });
+chapterSchema.index({ parentChapter: 1 });
+
 module.exports = mongoose.model("Chapter",chapterSchema);

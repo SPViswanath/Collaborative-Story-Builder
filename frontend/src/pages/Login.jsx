@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { googleLogin } from "../api/authApi";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User, Loader2 } from "lucide-react";
 import Logo from "../assets/lat.png";
 
 function Login() {
@@ -180,6 +180,7 @@ function Login() {
                   name="email"
                   type="email"
                   placeholder="Enter your email"
+                  autocomplete="email"
                   onChange={handleChange}
                   required
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
@@ -213,9 +214,10 @@ function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-gray-900 text-white font-semibold hover:bg-black transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-xl bg-gray-900 text-white font-semibold hover:bg-black transition disabled:opacity-80 disabled:cursor-not-allowed flex justify-center items-center gap-2"
             >
-              {loading ? "Please wait..." : isSignup ? "Sign Up" : "Login"}
+              {loading && <Loader2 className="w-5 h-5 animate-spin mx-auto" />}
+              {!loading && (isSignup ? "Sign Up" : "Login")}
             </button>
           </form>
 

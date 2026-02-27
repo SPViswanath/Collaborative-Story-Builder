@@ -1,9 +1,28 @@
 import { Trash2 } from "lucide-react";
+import { useRef, useEffect } from "react";
 
 function DeleteChapterModal({ chapter, onClose, onConfirm }) {
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-xl p-4">
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-[92%] md:w-[240px]">
+      <div 
+        ref={modalRef}
+        className="w-full bg-white rounded-xl shadow-2xl border border-gray-200 p-4"
+      >
         <h3 className="text-sm font-semibold text-gray-900 mb-2">
           Delete {chapter.isBranch ? "Branch" : "Chapter"}
         </h3>

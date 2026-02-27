@@ -9,12 +9,14 @@ import {
   Pencil,
   Trash2,
   MoreVertical,
+  Loader2,
 } from "lucide-react";
 import CreateChapterModal from "./CreateChapterModal";
 import { socket } from "../../socket";
 import { useRef } from "react";
 import RenameChapterModal from "./RenameChapterModal";
 import DeleteChapterModal from "./DeleteChapterModal";
+import SpeechToTextButton from "./SpeechToTextButton";
 import { useAuth } from "../../context/AuthContext";
 
 function ChapterSidebar({
@@ -123,6 +125,7 @@ function ChapterSidebar({
   };
 
   useEffect(() => {
+    if (!storyId) return;
     loadSidebar();
   }, [storyId]);
 
@@ -199,8 +202,40 @@ function ChapterSidebar({
       </div>
       {/* ✅ Scrollable list */}
       <div className="flex-1 overflow-y-auto px-2 pb-4">
-        {loading ? (
-          <div className="text-sm text-gray-500 px-3 py-2">Loading...</div>
+        {collapsed ? (
+          // Collapsed view: Show minimal chapter icons
+          <div className="space-y-2 mt-2">
+            {normalChapters.map((ch, index) => (
+              <button
+                key={ch._id}
+                onClick={() => {
+                  setSelectedChapter(ch);
+                  setSidebarOpen(false);
+                }}
+                className={`
+                  w-full flex items-center justify-center
+                  px-2 py-2.5 rounded-lg border transition
+                  ${
+                    selectedChapter?._id === ch._id
+                      ? "bg-gray-100 text-gray-900 border-gray-300"
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
+                  }
+                `}
+                title={ch.title}
+              >
+                <span className="text-sm font-semibold">{index + 1}</span>
+              </button>
+            ))}
+          </div>
+        ) : loading ? (
+          <div className="space-y-2 mt-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="h-10 bg-gray-100 rounded-lg border border-gray-100 animate-pulse"
+              />
+            ))}
+          </div>
         ) : chapters.length === 0 ? (
           <div className="text-sm text-gray-500 px-3 py-2">No chapters yet</div>
         ) : (
@@ -458,9 +493,14 @@ function ChapterSidebar({
           placeholder="Enter chapter title"
           onClose={() => setOpenCreateChapter(false)}
           onCreate={async (title) => {
-            await createChapter(storyId, title, null);
-            setOpenCreateChapter(false);
-            await loadSidebar();
+            try {
+              await createChapter(storyId, title, null);
+              setOpenCreateChapter(false);
+              await loadSidebar();
+            } catch (err) {
+              // Re-throw error so modal can display it
+              throw err;
+            }
           }}
         />
       )}
@@ -474,10 +514,15 @@ function ChapterSidebar({
             setBranchParent(null);
           }}
           onCreate={async (title) => {
-            await createChapter(storyId, title, branchParent?._id);
-            setOpenCreateBranch(false);
-            setBranchParent(null);
-            await loadSidebar();
+            try {
+              await createChapter(storyId, title, branchParent?._id);
+              setOpenCreateBranch(false);
+              setBranchParent(null);
+              await loadSidebar();
+            } catch (err) {
+              // Re-throw error so modal can display it
+              throw err;
+            }
           }}
         />
       )}

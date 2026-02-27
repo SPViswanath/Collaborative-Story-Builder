@@ -11,8 +11,8 @@ export const getOngoingStories = () =>
 export const getMyPublishedStories = () =>
   API.get("/api/stories/my/published");
 
-export const getPublicPublishedStories = () =>
-  API.get("/api/stories/published");
+export const getPublicPublishedStories = (page = 1, limit = 20) =>
+  API.get(`/api/stories/published?page=${page}&limit=${limit}`);
 
 export const addCollaborator = (storyId, email) =>
   API.post(`/api/stories/${storyId}/collaborators`, { email });
@@ -57,8 +57,8 @@ const EXTERNAL_API = axios.create({
   baseURL: "https://gutendex.com",
 });
 
-export const getExternalStories = () =>
-  EXTERNAL_API.get("/books");
+export const getExternalStories = (page = 1) =>
+  EXTERNAL_API.get(`/books?page=${page}`);
 
 export const getExternalStoryById = (bookId) =>
   EXTERNAL_API.get(`/books/${bookId}`);

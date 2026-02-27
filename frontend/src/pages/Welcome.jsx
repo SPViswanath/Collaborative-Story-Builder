@@ -9,11 +9,12 @@ import {
   Globe,
   Sparkles,
   ArrowRight,
+  Share2
 } from "lucide-react";
 
 import Navbar from "../components/common/Navbar";
 import { Mail, Linkedin } from "lucide-react";
-import Img from "../assets/story2.jpg";
+import Img from "../assets/story1.jpg";
 
 function Welcome() {
   const navigate = useNavigate();
@@ -287,7 +288,7 @@ function Welcome() {
                 <img
                   src={Img}
                   alt="StoryBuilder collaboration illustration"
-                  className="w-full h-[240px] rounded-xl object-cover"
+                  className="w-full h-auto rounded-xl object-contain shadow-sm border border-gray-100"
                 />
               </div>
             </div>
@@ -295,53 +296,67 @@ function Welcome() {
           </div>
         </div>
 
-
-        {/* ================= FOOTER (UNCHANGED) ================= */}
-        <footer className="mt-16 border-t border-gray-200 text-sm text-gray-600">
-          <div className="max-w-6xl mx-auto px-4 md:px-8 py-8">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-              <div className="max-w-md">
-                <p className="text-base font-semibold text-gray-900">
-                  StoryBuilder
-                </p>
-                <p className="mt-2 text-gray-500 leading-relaxed">
-                  A collaborative platform for structured storytelling.
-                </p>
-              </div>
-
-              <div className="md:text-right">
-                <p className="text-base font-semibold text-gray-900">
-                  Contact
-                </p>
-
-                <div className="mt-3 flex flex-col items-start md:items-end gap-3">
-                  <a
-                    href="mailto:viswanathpaarthiban1@gmail.com"
-                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
-                  >
-                    <Mail size={18} />
-                    Email
-                  </a>
-
-                  <a
-                    href="https://www.linkedin.com/in/viswanathpaarthiban/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
-                  >
-                    <Linkedin size={18} />
-                    LinkedIn
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-4 border-t border-gray-200 text-xs text-gray-500">
-              © {new Date().getFullYear()} StoryBuilder. All rights reserved.
-            </div>
-          </div>
-        </footer>
       </div>
+
+      {/* ================= FOOTER ================= */}
+      <footer className="bg-[#121622] text-slate-300 py-12 px-6 sm:px-14">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row md:justify-between gap-12 md:gap-4 mb-16">
+            
+            {/* Brand Logo & Name */}
+            <div>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#2d3240] rounded-2xl flex items-center justify-center text-white">
+                  <PenLine size={24} />
+                </div>
+                <span className="text-2xl font-bold text-white tracking-widest" style={{fontFamily: 'system-ui, sans-serif'}}>StoryBuilder</span>
+              </div>
+            </div>
+            
+            {/* Footer Links */}
+            <div className="grid grid-cols-2 gap-12 sm:gap-24 md:gap-32">
+              <div className="flex flex-col gap-6">
+                <h3 className="text-white font-bold text-sm tracking-wide">Platform</h3>
+                <button onClick={() => navigate("/")} className="text-left text-[#8B95A5] hover:text-white transition text-sm">Discover</button>
+                <button onClick={() => navigate("/main")} className="text-left text-[#8B95A5] hover:text-white transition text-sm">Explore</button>
+                <button onClick={() => navigate("/dashboard")} className="text-left text-[#8B95A5] hover:text-white transition text-sm">Dashboard</button>
+              </div>
+              <div className="flex flex-col gap-6">
+                <h3 className="text-white font-bold text-sm tracking-wide">Connect</h3>
+                <a href="mailto:viswanathpaarthiban1@gmail.com" className="text-left text-[#8B95A5] hover:text-white transition text-sm">Email</a>
+                <a href="https://www.linkedin.com/in/viswanathpaarthiban/" target="_blank" rel="noopener noreferrer" className="text-left text-[#8B95A5] hover:text-white transition text-sm">LinkedIn</a>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Bottom Footer Section */}
+          <div className="border-t border-[#262b3a]/50 pt-10 flex flex-col md:flex-row-reverse items-center justify-between gap-10">
+            {/* Social / Circular buttons */}
+            <div className="flex gap-5">
+              <a href="https://github.com/viswanathpaarthiban/" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-[#2d3240] hover:bg-[#3d4456] rounded-full flex items-center justify-center transition">
+                <Globe size={18} className="text-white" />
+              </a>
+              <button onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'StoryBuilder',
+                    text: 'Check out StoryBuilder, a collaborative storytelling platform!',
+                    url: window.location.href,
+                  });
+                }
+              }} className="w-12 h-12 bg-[#2d3240] hover:bg-[#3d4456] rounded-full flex items-center justify-center transition">
+                <Share2 size={18} className="text-white" />
+              </button>
+            </div>
+            
+            {/* Copyright */}
+            <p className="text-[#64748B] text-xs text-center md:text-left leading-relaxed font-medium">
+              © {new Date().getFullYear()} StoryBuilder. Designed for dreamers.<br className="md:hidden" /> All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

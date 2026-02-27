@@ -12,6 +12,7 @@ import CollaboratorsModal from "../story/Collaborators";
 import ConfirmModal from "../common/ConfirmModal";
 import EditStoryModal from "../story/EditStoryModal"; // ✅ ADD
 import { uploadStoryCover } from "../../api/storyApi";
+import { Loader2 } from "lucide-react";
 
 function OngoingStories({ sidebarOpen = false, navbarMenuOpen = false }) {
   const [stories, setStories] = useState([]);
@@ -134,7 +135,9 @@ function OngoingStories({ sidebarOpen = false, navbarMenuOpen = false }) {
       </h1>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading...</div>
+        <div className="flex justify-center py-12 text-gray-400">
+          <Loader2 className="w-6 h-6 animate-spin" />
+        </div>
       ) : stories.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p className="text-lg">No ongoing stories yet. Start creating!</p>

@@ -51,13 +51,19 @@ function Reader() {
     const loadReader = async () => {
       setSidebarLoading(true);
       setError("");
+      console.time("Reader Load");
 
       try {
         if (isInternal) {
-          const storyRes = await getPublicStoryById(id);
+          console.time("Internal Story & Sidebar Fetch");
+          const [storyRes, sidebarRes] = await Promise.all([
+            getPublicStoryById(id),
+            getPublicChapterSidebar(id),
+          ]);
+          console.timeEnd("Internal Story & Sidebar Fetch");
+
           setStory(storyRes.data.story);
 
-          const sidebarRes = await getPublicChapterSidebar(id);
           console.log(sidebarRes.data);
           const list = sidebarRes.data?.chapters || [];
           
@@ -68,7 +74,10 @@ function Reader() {
             setSelectedChapterId(firstChapter._id);
 
             setContentLoading(true);
+            console.time("First Chapter Content Fetch");
             const chapterRes = await getPublicChapterContent(firstChapter._id);
+            console.timeEnd("First Chapter Content Fetch");
+
             setChapterContent(chapterRes.data?.chapter?.content || "");
             setContentLoading(false);
           } else {
@@ -78,7 +87,10 @@ function Reader() {
         }
 
         if (isExternal) {
+          console.time("External Book Fetch");
           const bookRes = await getExternalStoryById(id);
+          console.timeEnd("External Book Fetch");
+
           const book = bookRes.data;
           setExternalBook(book);
 
@@ -93,7 +105,10 @@ function Reader() {
           }
 
           setContentLoading(true);
+          console.time("External Text Fetch");
           const textRes = await fetchExternalTextByUrl(readableUrl);
+          console.timeEnd("External Text Fetch");
+
           setExternalText(textRes.data || "");
           setContentLoading(false);
         }
@@ -102,6 +117,7 @@ function Reader() {
         setError(err?.response?.data?.message || "Failed to load reader");
       } finally {
         setSidebarLoading(false);
+        console.timeEnd("Reader Load");
       }
     };
 

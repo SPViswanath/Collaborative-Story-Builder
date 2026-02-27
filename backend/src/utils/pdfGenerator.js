@@ -1,139 +1,169 @@
-const PDFDocument = require("pdfkit");
+const html_to_pdf = require('html-pdf-node');
 const fs = require("fs");
 const path = require("path");
 
-function stripHtmlTags(html) {
-  if (!html) return "";
-  return html
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/<\/p>/gi, "\n\n") // Double newline for paragraphs
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<\/h[1-6]>/gi, "\n\n")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/?[^>]+(>|$)/g, "")
-    .replace(/\n{3,}/g, "\n\n") // Replace 3+ newlines with just 2
-    .replace(/[ \t]+/g, " ") // Replace multiple spaces/tabs with single space
-    .trim(); // MUST trim to prevent trailing blank pages
-}
-
 module.exports = async function generateStoryPDF(story, chapters, res) {
-  const doc = new PDFDocument({
-    size: "A4",
-    margins: { top: 50, bottom: 70, left: 50, right: 50 }, // Increased bottom margin for footer
-    bufferPages: true, // Required for page numbering
-    autoFirstPage: true 
-  });
+  try {
+    const logoPath = path.join(__dirname, "../assests/image.png");
+    let logoBase64 = "";
+    if (fs.existsSync(logoPath)) {
+      const imgData = fs.readFileSync(logoPath);
+      logoBase64 = `data:image/png;base64,${imgData.toString("base64")}`;
+    }
 
-  doc.on('error', (err) => {
-    console.error("PDF Generation Error:", err);
+    let chaptersHtml = "";
+    chapters.forEach((chapter, index) => {
+      chaptersHtml += `
+        <div class="chapter-page">
+          <h2 class="chapter-title">Chapter ${index + 1}: ${chapter.title}</h2>
+          <div class="chapter-content">
+            ${chapter.content || ""}
+          </div>
+        </div>
+      `;
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Open+Sans:wght@400;600&display=swap');
+          
+          body {
+            font-family: 'Merriweather', serif;
+            color: #1f2937;
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+          }
+          
+          .cover-page {
+            text-align: center;
+            padding-top: 100px;
+            page-break-after: always;
+          }
+
+          .logo {
+            width: 250px;
+            margin: 0 auto 40px auto;
+          }
+
+          .title {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 36px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 20px;
+          }
+
+          .description {
+            font-size: 16px;
+            color: #4b5563;
+            max-width: 600px;
+            margin: 0 auto 30px auto;
+            font-style: italic;
+          }
+
+          .author {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 18px;
+            color: #6b7280;
+          }
+
+          .chapter-page {
+            page-break-before: always;
+            padding-top: 20px;
+          }
+          
+          .chapter-page:first-of-type {
+            page-break-before: auto;
+            padding-top: 0;
+          }
+
+          .chapter-title {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 24px;
+            color: #059669;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+          }
+
+          .chapter-content {
+            font-size: 14.5px;
+            text-align: justify;
+          }
+
+          .chapter-content p {
+            margin-bottom: 15px;
+            margin-top: 0;
+          }
+          
+          .chapter-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 15px 0;
+          }
+          
+          .chapter-content h1, .chapter-content h2, .chapter-content h3 {
+            font-family: 'Open Sans', sans-serif;
+            color: #111827;
+            margin-top: 25px;
+            margin-bottom: 15px;
+          }
+          
+          /* TipTap/Quill specific alignments */
+          .ql-align-center { text-align: center; }
+          .ql-align-right { text-align: right; }
+          .ql-align-justify { text-align: justify; }
+        </style>
+      </head>
+      <body>
+        <div class="cover-page">
+          ${logoBase64 ? `<img src="${logoBase64}" class="logo" />` : ""}
+          <div class="title">${story.title}</div>
+          ${story.description ? `<div class="description">${story.description}</div>` : ""}
+          ${story.author && story.author.name ? `<div class="author">by ${story.author.name}</div>` : ""}
+        </div>
+        ${chaptersHtml}
+      </body>
+      </html>
+    `;
+
+    const options = { 
+      format: 'A4',
+      margin: {
+        top: '60px',
+        right: '50px',
+        bottom: '80px',
+        left: '50px'
+      },
+      displayHeaderFooter: true,
+      headerTemplate: "<div></div>",
+      footerTemplate: `
+        <div style="width: 100%; font-size: 10px; text-align: center; color: #9ca3af; padding-top: 5px; border-top: 1px solid #e5e7eb; margin: 0 50px;">
+          Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+        </div>
+      `,
+      printBackground: true
+    };
+
+    const file = { content: htmlContent };
+    
+    const pdfBuffer = await html_to_pdf.generatePdf(file, options);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${story.title.replace(/\s+/g, '_')}.pdf"`
+    );
+    res.send(pdfBuffer);
+    
+  } catch (error) {
+    console.error("PDF Generation Error (html-pdf-node):", error);
     if (!res.headersSent) res.status(500).send("Generation failed");
-  });
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${story.title.replace(/\s+/g, '_')}.pdf"`
-  );
-
-  doc.pipe(res);
-
-  // --- 1. LOGO (Made Bigger - now 300px) ---
-  const logoPath = path.join(__dirname, "../assests/image.png");
-  if (fs.existsSync(logoPath)) {
-    // Increased width to 300 for larger logo
-    doc.image(logoPath, 50, 40, { width: 300 });
   }
-
-  // --- 2. TITLE GAP (Increased significantly) ---
-  // Set Y cursor to 300 to create bigger gap between logo and title
-  doc.y = 300;
-
-  doc.font("Helvetica-Bold")
-    .fontSize(26)
-    .fillColor("#0F172A")
-    .text(story.title);
-
-  if (story.description) {
-    doc.moveDown(0.7);
-    doc.font("Helvetica")
-      .fontSize(12)
-      .fillColor("#334155")
-      .text(story.description, { align: "justify" });
-  }
-
-  doc.moveDown(1.5); // More space before first chapter
-
-  // --- 3. CHAPTERS (Fixed Page Logic) ---
-  chapters.forEach((chapter, index) => {
-    const plainTextContent = stripHtmlTags(chapter.content || "");
-    
-    // Skip completely empty chapters to prevent blank pages
-    if (!plainTextContent || plainTextContent.length === 0) return;
-
-    // ORPHAN PROTECTION:
-    // Only add a page if the Title + 3 lines of text won't fit.
-    // We do NOT add a page if we are already at the top (doc.y < 100).
-    const spaceNeeded = 120; 
-    const spaceLeft = doc.page.height - doc.page.margins.bottom - doc.y;
-
-    if (spaceLeft < spaceNeeded && doc.y > 100) {
-      doc.addPage();
-    }
-
-    // Render Title
-    doc.font("Helvetica-Bold")
-      .fontSize(18)
-      .fillColor("#059669")
-      .text(`Chapter ${index + 1}: ${chapter.title}`);
-
-    doc.moveDown(0.5);
-
-    // Render Text
-    // We let PDFKit handle the wrapping and page breaks for the text automatically.
-    doc.font("Helvetica")
-      .fontSize(11)
-      .fillColor("#334155")
-      .text(plainTextContent, {
-        align: "justify",
-        lineGap: 2,
-        paragraphGap: 10
-      });
-      
-    // Only add spacing if this isn't the last chapter to prevent extra blank pages
-    if (index < chapters.length - 1) {
-      doc.moveDown(1.5); // Reduced gap between chapters
-    }
-  });
-
-  // CRITICAL: Finalize all content before adding page numbers
-  // This ensures we know the exact page count without extra blank pages
-  
-  // --- 4. PAGE NUMBERS (Applied to all existing content pages) ---
-  const range = doc.bufferedPageRange(); // Gets range of all buffered pages
-  
-  // Calculate footer position (within the bottom margin area)
-  const footerY = doc.page.height - 50;
-
-  // Iterate through all pages and add page numbers
-  for (let i = 0; i < range.count; i++) {
-    doc.switchToPage(i);
-    
-    doc.fontSize(8)
-      .fillColor("#64748B")
-      .text(
-        `Page ${i + 1} of ${range.count} — StoryBuilder`,
-        50,
-        footerY,
-        { align: "center", width: doc.page.width - 100 }
-      );
-  }
-
-  // End document - no content should be added after page numbers
-  doc.end();
 };

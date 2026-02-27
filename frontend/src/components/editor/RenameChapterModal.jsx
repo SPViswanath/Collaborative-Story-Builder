@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { renameChapter } from "../../api/chapterApi";
 
@@ -39,9 +39,27 @@ function RenameChapterModal({ chapter, onClose, onSuccess }) {
     }
   };
 
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-xl">
+    <div className="absolute top-12 left-2 z-[9999] w-[calc(100%-16px)]">
+      <div 
+        ref={modalRef}
+        className="w-full bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h3 className="text-sm font-semibold text-gray-900">

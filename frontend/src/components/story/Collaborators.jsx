@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCollaborators, removeCollaborator } from "../../api/storyApi";
 import { useAuth } from "../../context/AuthContext";
+import { Loader2 } from "lucide-react";
 
 function CollaboratorsModal({ storyId, storyTitle,onClose, viewOnly = false }) {
   const { user } = useAuth();
@@ -66,7 +67,9 @@ function CollaboratorsModal({ storyId, storyTitle,onClose, viewOnly = false }) {
         {/* Body */}
         <div className="p-4">
           {loading ? (
-            <div className="text-center py-6 text-gray-500">Loading...</div>
+            <div className="flex justify-center py-6 text-gray-400">
+              <Loader2 className="w-5 h-5 animate-spin" />
+            </div>
           ) : collaborators.length === 0 ? (
             <div className="text-center py-6 text-gray-500">
               No collaborators found.

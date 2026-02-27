@@ -7,6 +7,7 @@ function SpeechToTextButton({
   onStatusChange,
 }) {
   const [isOn, setIsOn] = useState(false);
+  const [showHint, setShowHint] = useState(false);
   const recognitionRef = useRef(null);
 
   const SpeechRecognition = useMemo(() => {
@@ -81,8 +82,18 @@ function SpeechToTextButton({
     } else {
       startRecognition();
       setIsOn(true);
+      setShowHint(true);
     }
   };
+
+  // ✅ Auto close hint tooltip after 3 seconds
+  useEffect(() => {
+    let timer;
+    if (showHint) {
+      timer = setTimeout(() => setShowHint(false), 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [showHint]);
 
   // ✅ Auto stop when chapter changes (B1)
   useEffect(() => {
@@ -127,21 +138,31 @@ function SpeechToTextButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggleMic}
-      disabled={disabled}
-      className={`px-3 py-2 rounded-md text-sm transition ${
-        disabled
-          ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-          : isOn
-          ? "bg-red-600 text-white hover:bg-red-700"
-          : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-      }`}
-      title={isOn ? "Stop voice typing" : "Start voice typing"}
-    >
-      {isOn ? "🎙️ ON" : "🎤"}
-    </button>
+    <div className="relative inline-flex items-center">
+      <button
+        type="button"
+        onClick={toggleMic}
+        disabled={disabled}
+        className={`px-3 py-2 rounded-md text-sm transition ${
+          disabled
+            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+            : isOn
+            ? "bg-red-600 text-white hover:bg-red-700"
+            : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+        }`}
+        title={isOn ? "Stop voice typing" : "Start voice typing"}
+      >
+        {isOn ? "🎙️ ON" : "🎤"}
+      </button>
+
+      {/* Instructional Hint Tooltip */}
+      {showHint && (
+        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-[240px] bg-gray-900 text-white text-xs text-center px-4 py-3 rounded-lg shadow-xl z-50 pointer-events-none animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-gray-900 rotate-45"></div>
+          Place the cursor wherever you want to start, then speak to record.
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -166,18 +166,6 @@ function Navbar({ onMenuClick = () => {}, page, onMobileMenuChange }) {
             {/* ✅ Logged OUT */}
             {!isAuthenticated ? (
               <div className="ml-4 flex items-center gap-3">
-                {/* ✅ Profile -> redirect to login */}
-                <button
-                  onClick={() =>
-                    navigate("/login", {
-                      state: { from: window.location.pathname },
-                    })
-                  }
-                  className="px-4 py-2 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition font-medium"
-                >
-                  Profile
-                </button>
-
                 <button
                   onClick={() =>
                     navigate("/login", {

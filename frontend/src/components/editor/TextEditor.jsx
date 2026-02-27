@@ -254,8 +254,13 @@ function TextEditor({
 
   if (!sidebarLoaded) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Loading editor...</p>
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+          </div>
+          <p className="text-sm text-gray-500">Loading editor...</p>
+        </div>
       </div>
     );
   }
@@ -307,8 +312,13 @@ function TextEditor({
       {/* ✅ Editor Area */}
       <div className="p-3">
         {loading ? (
-          <div className="text-gray-500 text-sm px-1 py-2">
-            Loading editor...
+          <div className="bg-white border border-gray-200 mt-2 h-[calc(100vh-16rem)] flex items-center justify-center rounded-md">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+              </div>
+              <p className="text-sm text-gray-500">Loading chapter...</p>
+            </div>
           </div>
         ) : (
           <div className="border border-gray-200 rounded-md overflow-hidden bg-white">

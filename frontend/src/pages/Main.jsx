@@ -3,13 +3,23 @@ import { getPublicPublishedStories, getExternalStories } from "../api/storyApi";
 import StoryCard from "../components/story/StoryCard";
 import Navbar from "../components/common/Navbar";
 import Loader from "../components/common/Loader"
+import { Loader2 } from "lucide-react";
 
 function Main() {
+  // Internal stories pagination
   const [internalStories, setInternalStories] = useState([]);
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalHasMore, setInternalHasMore] = useState(true);
+  const [loadingInternal, setLoadingInternal] = useState(false);
+
+  // External stories pagination
   const [externalStories, setExternalStories] = useState([]);
+  const [externalPage, setExternalPage] = useState(1);
+  const [externalHasMore, setExternalHasMore] = useState(true);
+  const [loadingExternal, setLoadingExternal] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
 
   // ✅ Filter: all | internal | external
   const [filter, setFilter] = useState("all");
@@ -17,27 +27,88 @@ function Main() {
   // ✅ info popup
   const [infoOpen, setInfoOpen] = useState(false);
 
+  // Initial Fetch
   useEffect(() => {
-    const fetchAllStories = async () => { 
+    const fetchInitial = async () => {
       try {
         setLoading(true);
+        console.time("Total Initial Load");
+
+        console.time("Internal Stories Load");
+        const internalPromise = getPublicPublishedStories(1, 20);
+        
+        console.time("External Stories Load");
+        const externalPromise = getExternalStories(1);
 
         const [internalRes, externalRes] = await Promise.all([
-          getPublicPublishedStories(),
-          getExternalStories(),
+          internalPromise,
+          externalPromise,
         ]);
 
-        setInternalStories(internalRes.data?.stories || []);
-        setExternalStories(externalRes.data?.results?.slice(0, 50) || []);
+        console.timeEnd("Internal Stories Load");
+        console.timeEnd("External Stories Load");
+        console.timeEnd("Total Initial Load");
+
+        const newInternal = internalRes.data?.stories || [];
+        setInternalStories(newInternal);
+        setInternalHasMore(newInternal.length === 20);
+
+        const newExternal = externalRes.data?.results || [];
+        setExternalStories(newExternal);
+        setExternalHasMore(!!externalRes.data?.next);
+
       } catch (err) {
-        console.error(err);
+        console.error("Initial fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAllStories();
+    fetchInitial();
   }, []);
+
+  const loadMoreInternal = async () => {
+    if (loadingInternal || !internalHasMore) return;
+    setLoadingInternal(true);
+    const nextPage = internalPage + 1;
+    
+    try {
+      console.time(`Load More Internal (Page ${nextPage})`);
+      const res = await getPublicPublishedStories(nextPage, 20);
+      console.timeEnd(`Load More Internal (Page ${nextPage})`);
+
+      const newStories = res.data?.stories || [];
+      setInternalStories((prev) => [...prev, ...newStories]);
+      setInternalHasMore(newStories.length === 20);
+      setInternalPage(nextPage);
+    } catch (err) {
+      console.error("Load more internal error:", err);
+    } finally {
+      setLoadingInternal(false);
+    }
+  };
+
+  const loadMoreExternal = async () => {
+    if (loadingExternal || !externalHasMore) return;
+    setLoadingExternal(true);
+    const nextPage = externalPage + 1;
+
+    try {
+      console.time(`Load More External (Page ${nextPage})`);
+      const res = await getExternalStories(nextPage);
+      console.timeEnd(`Load More External (Page ${nextPage})`);
+
+      const newBooks = res.data?.results || [];
+      setExternalStories((prev) => [...prev, ...newBooks]);
+      setExternalHasMore(!!res.data?.next);
+      setExternalPage(nextPage);
+    } catch (err) {
+      console.error("Load more external error:", err);
+    } finally {
+      setLoadingExternal(false);
+    }
+  };
+
 
   const showInternal = filter === "all" || filter === "internal";
   const showExternal = filter === "all" || filter === "external";
@@ -120,7 +191,7 @@ function Main() {
                     Community Stories
                   </h2>
                   <p className="text-sm text-gray-500">
-                    {internalStories.length} stories
+                    {internalStories.length} stories loaded
                   </p>
                 </div>
 
@@ -129,11 +200,27 @@ function Main() {
                     No community stories available right now.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-                    {internalStories.map((story) => (
-                      <StoryCard key={story._id} story={story} source="internal" mobileMenuOpen={mobileMenuOpen} />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+                      {internalStories.map((story) => (
+                        <StoryCard key={story._id} story={story} source="internal" mobileMenuOpen={mobileMenuOpen} />
+                      ))}
+                    </div>
+
+                    {/* ✅ Load More Internal */}
+                    {internalHasMore && (
+                       <div className="flex justify-center mt-6">
+                         <button
+                           onClick={loadMoreInternal}
+                           disabled={loadingInternal}
+                           className="px-6 py-2 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 flex items-center gap-2 justify-center"
+                         >
+                           {loadingInternal && <Loader2 className="w-4 h-4 animate-spin mx-auto" />}
+                           {!loadingInternal && "Load More"}
+                         </button>
+                       </div>
+                    )}
+                  </>
                 )}
               </section>
             )}
@@ -146,7 +233,7 @@ function Main() {
                     Classic Stories
                   </h2>
                   <p className="text-sm text-gray-500">
-                    {externalStories.length} books
+                    {externalStories.length} books loaded
                   </p>
                 </div>
 
@@ -155,12 +242,27 @@ function Main() {
                     No classic stories available right now.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {externalStories.map((book) => (
-                      <StoryCard key={book.id} story={book} source="external" mobileMenuOpen={mobileMenuOpen} />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      {externalStories.map((book) => (
+                        <StoryCard key={book.id} story={book} source="external" mobileMenuOpen={mobileMenuOpen} />
+                      ))}
+                    </div>
 
+                    {/* ✅ Load More External */}
+                    {externalHasMore && (
+                        <div className="flex justify-center mt-6">
+                          <button
+                            onClick={loadMoreExternal}
+                            disabled={loadingExternal}
+                             className="px-6 py-2 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 flex items-center gap-2 justify-center"
+                          >
+                            {loadingExternal && <Loader2 className="w-4 h-4 animate-spin mx-auto" />}
+                            {!loadingExternal && "Load More"}
+                          </button>
+                        </div>
+                    )}
+                  </>
                 )}
               </section>
             )}

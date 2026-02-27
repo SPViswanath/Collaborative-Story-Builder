@@ -9,12 +9,35 @@ const createStory = async (req, res) => {
   try {
     const { title, description } = req.body;
 
+    console.log('🔍 CREATE STORY - Checking for duplicate:', title);
+    console.log('🔍 User ID:', req.userId);
+
+    // Check if user already has a story with this title (case-insensitive)
+    // Escape special regex characters in the title
+    const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existingStory = await Story.findOne({
+      author: req.userId,
+      title: { $regex: `^${escapedTitle}$`, $options: "i" },
+    });
+
+    console.log('🔍 Existing story found:', existingStory ? 'YES' : 'NO');
+
+    if (existingStory) {
+      console.log('❌ DUPLICATE DETECTED - Blocking creation');
+      return res.status(400).json({
+        message: "Story title already exists",
+      });
+    }
+
+    console.log('✅ No duplicate - Creating story');
+
     const story = await Story.create({
       title,
       description,
       author: req.userId,
       collaborators: [req.userId],
     });
+
 
     res.status(201).json({
       message: "Story created successfully",
@@ -176,17 +199,34 @@ const publishToggleStory = async (req, res) => {
 
 // get all published stories
 
+// get all published stories
 const getPublicPublishedStories = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
     const stories = await Story.find(
       { isPublished: true },
       { title: 1, description: 1, coverImage: 1, author: 1, createdAt: 1 },
     )
       .populate("author", "name")
       .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
-    res.status(200).json({ stories });
+    const total = await Story.countDocuments({ isPublished: true });
+
+    res.status(200).json({ 
+      stories,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (err) {
     res.status(500).json({
       message: "Failed to fetch published stories",
