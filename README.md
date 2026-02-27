@@ -1,4 +1,4 @@
-📖 Collaborative Story Builder
+🚀Collaborative Story Builder
 
 A full-stack web application that enables multiple users to collaborate and write stories in real time. The platform focuses on structured storytelling with chapters, alternate story branches, and controlled editing to maintain consistency—making it suitable for script writers, storybook authors, and collaborative content creators.
 
