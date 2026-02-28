@@ -85,13 +85,11 @@ function Login() {
     e.preventDefault();
     setErrorMsg("");
 
-    try {
-      isSignup ? await signup(form) : await Login(form);
-    } catch (err) {
-      setErrorMsg(
-        err.response?.data?.message ||
-          (isSignup ? "Signup failed" : "Invalid email or password"),
-      );
+    const action = isSignup ? signup : Login;
+    const result = await action(form);
+
+    if (result && !result.success) {
+      setErrorMsg(result.error);
     }
   };
 

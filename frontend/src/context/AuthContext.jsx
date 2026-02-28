@@ -54,12 +54,14 @@ export function AuthProvider({ children }) {
       });
 
       setUser({ ...res.data, id: res.data.userId });
-      console.log(user);
+      console.log("Logged in user:", user);
       setIsAuthenticated(true);
+      return { success: true };
     } catch (err) {
       console.error("Login failed:", err.response?.data?.message);
       setIsAuthenticated(false);
       setUser(null);
+      return { success: false, error: err.response?.data?.message || "Invalid email or password" };
     } finally {
       setLoading(false);
     }
@@ -77,10 +79,12 @@ export function AuthProvider({ children }) {
 
       setUser({ ...res.data, id: res.data.userId });
       setIsAuthenticated(true);
+      return { success: true };
     } catch (err) {
       console.error("Signup failed:", err.response?.data?.message);
       setIsAuthenticated(false);
       setUser(null);
+      return { success: false, error: err.response?.data?.message || "Signup failed" };
     } finally {
       setLoading(false);
     }

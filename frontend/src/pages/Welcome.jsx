@@ -319,16 +319,25 @@ function Welcome() {
             {/* Links Section */}
             <div className="flex gap-16 sm:gap-24 lg:gap-32">
               <div className="flex flex-col gap-4">
-                <h3 className="text-white font-bold text-[14px] tracking-wide mb-1 uppercase">App</h3>
-                <button onClick={() => navigate("/dashboard")} className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Editor</button>
-                <button className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Canvas</button>
-                <button onClick={() => navigate("/main")} className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Showcase</button>
+                <h3 className="text-white font-bold text-[14px] tracking-wide mb-1 uppercase">Platform</h3>
+                <button onClick={() => navigate("/dashboard")} className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Dashboard</button>
+                <button onClick={() => navigate("/main")} className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Explore</button>
+                <button onClick={() => navigate("/discover")} className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Discover</button>
               </div>
               <div className="flex flex-col gap-4">
                 <h3 className="text-white font-bold text-[14px] tracking-wide mb-1 uppercase">Company</h3>
-                <button className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">About</button>
-                <button className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Blog</button>
-                <button className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Careers</button>
+                <button 
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+                  className="text-left text-[#8B95A5] hover:text-white transition text-[14px]"
+                >
+                  About
+                </button>
+                <a 
+                  href="mailto:viswanathpaarthiban1@gmail.com" 
+                  className="text-left text-[#8B95A5] hover:text-white transition text-[14px]"
+                >
+                  Contact
+                </a>
               </div>
             </div>
           </div>

@@ -535,9 +535,9 @@ function ChapterSidebar({
             setRenameTarget(null);
           }}
           onSuccess={async () => {
-            await loadSidebar();
             setOpenRenameModal(false);
             setRenameTarget(null);
+            await loadSidebar();
           }}
         />
       )}
@@ -551,9 +551,9 @@ function ChapterSidebar({
           }}
           onConfirm={async () => {
             await deleteChapter(deleteTarget._id);
-            await loadSidebar();
             setOpenDeleteModal(false);
             setDeleteTarget(null);
+            await loadSidebar();
           }}
         />
       )}
