@@ -299,43 +299,52 @@ function Welcome() {
       </div>
 
       {/* ================= FOOTER ================= */}
-      <footer className="bg-[#121622] text-slate-300 py-12 px-6 sm:px-14">
+      <footer className="relative z-10 bg-[#0f1423] py-12 md:py-16 px-6 sm:px-14 font-sans">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row md:justify-between gap-12 md:gap-4 mb-16">
-            
+          
+          <div className="flex flex-col md:flex-row md:justify-between gap-12 md:gap-8 mb-12 md:mb-16">
             {/* Brand Logo & Name */}
-            <div>
+            <div className="flex flex-col gap-5 max-w-sm">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#2d3240] rounded-2xl flex items-center justify-center text-white">
+                <div className="w-12 h-12 bg-[#1e2436] rounded-[14px] flex items-center justify-center text-white shadow-sm">
                   <PenLine size={24} />
                 </div>
-                <span className="text-2xl font-bold text-white tracking-widest" style={{fontFamily: 'system-ui, sans-serif'}}>StoryBuilder</span>
+                <span className="text-[24px] font-extrabold text-white tracking-wide" style={{fontFamily: 'system-ui, -apple-system, sans-serif'}}>StoryBuilder</span>
               </div>
-            </div>
-            
-            {/* Footer Links */}
-            <div className="grid grid-cols-2 gap-12 sm:gap-24 md:gap-32">
-              <div className="flex flex-col gap-6">
-                <h3 className="text-white font-bold text-sm tracking-wide">Platform</h3>
-                <button onClick={() => navigate("/")} className="text-left text-[#8B95A5] hover:text-white transition text-sm">Discover</button>
-                <button onClick={() => navigate("/main")} className="text-left text-[#8B95A5] hover:text-white transition text-sm">Explore</button>
-                <button onClick={() => navigate("/dashboard")} className="text-left text-[#8B95A5] hover:text-white transition text-sm">Dashboard</button>
-              </div>
-              <div className="flex flex-col gap-6">
-                <h3 className="text-white font-bold text-sm tracking-wide">Connect</h3>
-                <a href="mailto:viswanathpaarthiban1@gmail.com" className="text-left text-[#8B95A5] hover:text-white transition text-sm">Email</a>
-                <a href="https://www.linkedin.com/in/viswanathpaarthiban/" target="_blank" rel="noopener noreferrer" className="text-left text-[#8B95A5] hover:text-white transition text-sm">LinkedIn</a>
-              </div>
+              <p className="text-[#8B95A5] text-[14px] leading-relaxed md:pr-10">
+                The collaborative story writing platform designed for creators who value structure, collaboration, and creative freedom.
+              </p>
             </div>
 
+            {/* Links Section */}
+            <div className="flex gap-16 sm:gap-24 lg:gap-32">
+              <div className="flex flex-col gap-4">
+                <h3 className="text-white font-bold text-[14px] tracking-wide mb-1 uppercase">App</h3>
+                <button onClick={() => navigate("/dashboard")} className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Editor</button>
+                <button className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Canvas</button>
+                <button onClick={() => navigate("/main")} className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Showcase</button>
+              </div>
+              <div className="flex flex-col gap-4">
+                <h3 className="text-white font-bold text-[14px] tracking-wide mb-1 uppercase">Company</h3>
+                <button className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">About</button>
+                <button className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Blog</button>
+                <button className="text-left text-[#8B95A5] hover:text-white transition text-[14px]">Careers</button>
+              </div>
+            </div>
           </div>
 
-          {/* Bottom Footer Section */}
-          <div className="border-t border-[#262b3a]/50 pt-10 flex flex-col md:flex-row-reverse items-center justify-between gap-10">
-            {/* Social / Circular buttons */}
-            <div className="flex gap-5">
-              <a href="https://github.com/viswanathpaarthiban/" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-[#2d3240] hover:bg-[#3d4456] rounded-full flex items-center justify-center transition">
-                <Globe size={18} className="text-white" />
+          {/* Divider */}
+          <div className="w-full border-t border-[#1e2536] mb-8"></div>
+
+          {/* Social & Copyright */}
+          <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-6">
+            <p className="text-[#64748B] text-[13px] text-center md:text-left leading-relaxed font-medium">
+              © {new Date().getFullYear()} StoryBuilder. All rights reserved.<br className="md:hidden" /> Designed for dreamers.
+            </p>
+
+            <div className="flex gap-4">
+              <a href="https://github.com/SPViswanath" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-[#1e2536] hover:bg-[#2d364f] rounded-full flex items-center justify-center transition">
+                <Globe size={16} className="text-gray-300" />
               </a>
               <button onClick={() => {
                 if (navigator.share) {
@@ -345,15 +354,10 @@ function Welcome() {
                     url: window.location.href,
                   });
                 }
-              }} className="w-12 h-12 bg-[#2d3240] hover:bg-[#3d4456] rounded-full flex items-center justify-center transition">
-                <Share2 size={18} className="text-white" />
+              }} className="w-10 h-10 bg-[#1e2536] hover:bg-[#2d364f] rounded-full flex items-center justify-center transition">
+                <Share2 size={16} className="text-gray-300" />
               </button>
             </div>
-            
-            {/* Copyright */}
-            <p className="text-[#64748B] text-xs text-center md:text-left leading-relaxed font-medium">
-              © {new Date().getFullYear()} StoryBuilder. Designed for dreamers.<br className="md:hidden" /> All rights reserved.
-            </p>
           </div>
         </div>
       </footer>
