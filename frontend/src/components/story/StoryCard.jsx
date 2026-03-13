@@ -44,6 +44,9 @@ function StoryCard({
     story.author.toString() === loggedInUserId.toString();
 
   const handleCardClick = () => {
+    if(isPublishedSection){
+      return;
+    }
     if (mode !== "dashboard") {
       navigate(
         `/reader/${source}/${source === "internal" ? story._id : story.id}`,
