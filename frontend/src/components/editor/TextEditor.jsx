@@ -173,7 +173,6 @@ function TextEditor({
 
         return {
           ...prev,
-          ...chapter,
           isLocked: chapter?.isLocked ?? prev?.isLocked,
           lockedBy:
             chapter?.lockedBy === null

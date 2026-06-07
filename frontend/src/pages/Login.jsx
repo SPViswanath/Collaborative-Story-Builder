@@ -6,8 +6,7 @@ import { Mail, Lock, User, Loader2 } from "lucide-react";
 import Logo from "../assets/lat.png";
 
 function Login() {
-  const { Login, signup, loading, isAuthenticated, googleLoginSuccess } =
-    useAuth();
+  const { Login, signup, loading, isAuthenticated, googleLoginSuccess } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
