@@ -1,95 +1,117 @@
-🚀Collaborative Story Builder
+# 🚀 StoryBuilder
 
-A full-stack web application that enables multiple users to collaborate and write stories in real time. The platform focuses on structured storytelling with chapters, alternate story branches, and controlled editing to maintain consistency—making it suitable for script writers, storybook authors, and collaborative content creators.
+A full-stack web application that enables users to create, explore, and read stories. The platform focuses on structured storytelling with chapters, alternate story branches, and a seamless reading experience that seamlessly integrates external public domain books from Project Gutenberg.
 
-🚀 Features
+## 🚀 Features
 
-Real-time Collaboration
-Multiple users can collaboratively write stories with instant updates using WebSockets.
+*   **Interactive Reader Interface**: A highly optimized reader that features sidebar chapter navigation, auto-scroll positioning, and a clean, distraction-free layout.
+*   **External Story Integration (Project Gutenberg)**: Fetches and parses massive raw text files from Project Gutenberg on-the-fly. Uses advanced regex and cluster-detection algorithms to automatically remove Table of Contents (TOC) blocks and split the text into navigable chapters.
+*   **Backend Proxy Engine**: Safely bypasses strict anti-bot firewalls (like Cloudflare) by spoofing standard browser `User-Agent` headers in the Node.js backend.
+*   **Chapter & Branch-Based Structure**: Internal stories are organized into modular chapters with support for alternate narrative branches.
+*   **PDF Export**: Users can export their published stories to beautifully formatted PDFs directly from the backend.
+*   **Secure Authentication**: JWT-based user authentication, route protection, and session management.
 
-Chapter & Branch-Based Story Structure
-Stories are organized into chapters with support for alternate story branches, enabling multiple narrative paths.
+## 🏛 Architecture & Workflow
 
-Chapter Locking Mechanism
-Prevents concurrent edit conflicts by locking a chapter or branch when a user is actively editing it.
+The application follows a modern MERN stack architecture (MongoDB, Express, React, Node). 
 
-Live Voice-to-Text Editor
-Integrated voice-to-text functionality for faster and more accessible content creation.
+Below is the architectural workflow diagram illustrating how the frontend, backend, database, and external APIs interact—especially highlighting the complex external proxy parsing workflow.
 
-Public Story Publishing
-Authors can publish stories for open, read-only access.
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as React Frontend
+    participant B as Express Backend
+    participant DB as MongoDB
+    participant G as Project Gutenberg
 
-Classic Story Exploration
-Users can explore classic stories available on the platform.
+    %% Internal Story Workflow
+    rect rgb(240, 248, 255)
+    Note over U, DB: Workflow 1: Reading Internal Stories
+    U->>F: Clicks Internal Story
+    F->>B: GET /api/stories/public/:id
+    B->>DB: Query Story & Chapters
+    DB-->>B: Return Data
+    B-->>F: JSON Response
+    F-->>U: Render Reader Sidebar & Content
+    end
 
-Performance Optimization
-Indexed MongoDB schemas ensure efficient queries and scalability.
+    %% External Story Workflow
+    rect rgb(253, 245, 230)
+    Note over U, G: Workflow 2: Reading External Gutenberg Books
+    U->>F: Clicks External Story
+    F->>B: GET /api/stories/external/proxy?url=...
+    Note over B: Spoofs User-Agent to bypass Firewalls
+    B->>G: Fetch Raw .txt file
+    G-->>B: Return massive string
+    B-->>F: Return Raw Text
+    Note over F: Parse Text using Regex<br/>Filter out TOC using Cluster Detection<br/>Split into Chapter Array
+    F-->>U: Render Chapters in Native Reader Sidebar
+    end
+```
 
-🧩 Problems Addressed
-Problem	Solution
-Concurrent editing conflicts	Chapter-level locking mechanism
-Real-time synchronization	Socket.IO-based WebSocket communication
-Performance issues with large content	Indexed MongoDB data models
-Media storage scalability	Cloudinary integration
-🛠 Tech Stack
+## 🛠 Tech Stack
 
-Frontend
+*   **Frontend**: React.js (Vite), Tailwind CSS, React Router, Axios, Lucide Icons.
+*   **Backend**: Node.js, Express.js, JSON Web Tokens (JWT), Mongoose, Undici (Fetch).
+*   **Database**: MongoDB
+*   **External APIs**: Project Gutenberg (Public Domain Books)
 
-React.js
+## 📂 Project Structure
 
-Backend
-
-Node.js
-
-Express.js
-
-Database
-
-MongoDB (with indexing for performance)
-
-Real-Time Communication
-
-Socket.IO
-
-Media Storage
-
-Cloudinary
-
-📂 Project Structure (High-Level)
-collaborative-story-builder/
+```text
+Story-Builder/
 │
-├── client/          # React frontend
-├── server/          # Node.js + Express backend
-│   ├── models/      # MongoDB schemas
-│   ├── routes/      # API routes
-│   ├── controllers/ # Business logic
-│   └── sockets/     # Socket.IO handlers
+├── frontend/          # React frontend (Vite)
+│   ├── src/
+│   │   ├── api/       # Axios API integration
+│   │   ├── components/# Reusable UI components (Navbar, Sidebar)
+│   │   ├── pages/     # Page views (Main, Reader, Login)
+│   │   └── utils/     # Utilities (gutenbergParser.js)
 │
-├── README.md
-└── package.json
-🔗 Links
+├── backend/           # Node.js + Express backend
+│   ├── src/
+│   │   ├── controllers/ # Business logic & Proxy handling
+│   │   ├── models/      # MongoDB schemas
+│   │   └── routes/      # API endpoints
+│
+└── README.md
+```
 
-GitHub Repository: [Add GitHub Link]
+## ⚙️ Setup & Installation
 
-Live Demo: [Add Live Demo Link]
+### 1. Clone the repository
+```bash
+git clone <repository-url>
+cd Story-Builder
+```
 
-📌 Learning Outcomes
+### 2. Backend Setup
+Navigate to the backend directory and install dependencies:
+```bash
+cd backend
+npm install
+```
+Create a `.env` file in the `backend/` directory with the following variables:
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+```
+Start the backend development server:
+```bash
+npm run dev
+```
 
-Designing real-time collaborative systems
+### 3. Frontend Setup
+Open a new terminal, navigate to the frontend directory, and install dependencies:
+```bash
+cd frontend
+npm install
+```
+Start the Vite development server:
+```bash
+npm run dev
+```
 
-Handling data consistency in multi-user environments
-
-WebSocket-based communication using Socket.IO
-
-Backend performance optimization with MongoDB indexing
-
-Clean, modular full-stack architecture
-
-🤝 Contributions
-
-Contributions, suggestions, and improvements are welcome.
-Feel free to fork the repository and raise a pull request.
-
-📄 License
-
-This project is open-source and available under the MIT License.
+The application will now be running at `http://localhost:5173`.
