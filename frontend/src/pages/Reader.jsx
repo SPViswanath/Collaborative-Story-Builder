@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/common/Navbar";
 import { ChevronDown } from "lucide-react";
@@ -12,6 +12,7 @@ import {
   getPublicChapterContent,
 } from "../api/chapterApi";
 import ReaderSidebar from "../components/reader/ReaderSidebar";
+import { parseGutenbergToChapters } from "../utils/gutenbergParser";
 
 function Reader() {
   const { source, id } = useParams();
@@ -21,12 +22,20 @@ function Reader() {
   const [contentLoading, setContentLoading] = useState(true);
   const [error, setError] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const contentScrollRef = useRef(null);
+  const [chapterContent, setChapterContent] = useState("");
+
+  // Scroll to top when content changes
+  useEffect(() => {
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
+  }, [chapterContent]);
 
   // Internal story state
   const [story, setStory] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [selectedChapterId, setSelectedChapterId] = useState(null);
-  const [chapterContent, setChapterContent] = useState("");
 
   // External book state
   const [externalBook, setExternalBook] = useState(null);
@@ -79,6 +88,7 @@ function Reader() {
             console.timeEnd("First Chapter Content Fetch");
 
             setChapterContent(chapterRes.data?.chapter?.content || "");
+            setError("");
             setContentLoading(false);
           } else {
             setSelectedChapterId(null);
@@ -109,7 +119,22 @@ function Reader() {
           const textRes = await fetchExternalTextByUrl(readableUrl);
           console.timeEnd("External Text Fetch");
 
-          setExternalText(textRes.data || "");
+          const rawText = textRes.data || "";
+          setExternalText(rawText);
+
+          // Parse raw text into chapters
+          const parsedChapters = parseGutenbergToChapters(rawText);
+          setChapters(parsedChapters);
+
+          if (parsedChapters.length > 0) {
+            setSelectedChapterId(parsedChapters[0]._id);
+            setChapterContent(parsedChapters[0].content);
+          } else {
+            setSelectedChapterId(null);
+            setChapterContent("");
+          }
+          
+          setError("");
           setContentLoading(false);
         }
       } catch (err) {
@@ -127,9 +152,17 @@ function Reader() {
   // Handle chapter selection
   const handleSelectChapter = async (chapterId) => {
     setSelectedChapterId(chapterId);
-    setContentLoading(true);
     setError("");
 
+    if (isExternal) {
+      // Content is already in memory
+      const ch = chapters.find(c => c._id === chapterId);
+      setChapterContent(ch?.content || "");
+      return;
+    }
+
+    // For internal stories, fetch from backend
+    setContentLoading(true);
     try {
       const chapterRes = await getPublicChapterContent(chapterId);
       setChapterContent(chapterRes.data?.chapter?.content || "");
@@ -172,7 +205,7 @@ function Reader() {
       {/* Main Content Container */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
         {/* Mobile Chapter Dropdown */}
-        {isInternal && (
+        {chapters.length > 0 && (
           <div className="lg:hidden mb-4">
             <button
               onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
@@ -207,7 +240,7 @@ function Reader() {
         {/* Desktop Layout: Sidebar + Content */}
         <div className="flex gap-4">
           {/* Desktop Sidebar */}
-          {isInternal && (
+          {chapters.length > 0 && (
             <div className="hidden lg:block w-[280px] shrink-0">
               <div className="sticky top-20 h-[calc(70vh-6rem)]">
                 <ReaderSidebar
@@ -240,17 +273,15 @@ function Reader() {
             ) : (
               <div className="bg-white  border border-gray-200 h-[calc(100vh-12rem)] max-h-[calc(100vh-12rem)] overflow-hidden flex flex-col">
                 {/* Chapter Title Header */}
-                {isInternal && (
-                  <div className="px-6 md:px-8 py-4 border-b border-gray-200 shrink-0">
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">
-                      {selectedChapterTitle}
-                    </h2>
-                    <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-blue-300 rounded-full mt-2" />
-                  </div>
-                )}
+                <div className="px-6 md:px-8 py-4 border-b border-gray-200 shrink-0">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+                    {selectedChapterTitle || "Chapter"}
+                  </h2>
+                  <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-blue-300 rounded-full mt-2" />
+                </div>
 
                 {/* Content Area - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                <div ref={contentScrollRef} className="flex-1 overflow-y-auto p-6 md:p-8">
                   <div
                     className="prose prose-gray max-w-none
                       prose-headings:text-gray-900
@@ -260,16 +291,15 @@ function Reader() {
                       prose-code:text-blue-600 prose-code:bg-blue-50 prose-code:px-1 prose-code:rounded
                     "
                   >
-                    {isInternal && (
+                    {isInternal ? (
                       <div
                         dangerouslySetInnerHTML={{
                           __html: chapterContent || "<p class='text-gray-500 italic'>No content available for this chapter.</p>",
                         }}
                       />
-                    )}
-                    {isExternal && (
+                    ) : (
                       <pre className="whitespace-pre-wrap font-serif text-gray-700 leading-relaxed">
-                        {externalText || "No content available."}
+                        {chapterContent || "No content available."}
                       </pre>
                     )}
                   </div>

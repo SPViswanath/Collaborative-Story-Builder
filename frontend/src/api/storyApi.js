@@ -64,4 +64,4 @@ export const getExternalStoryById = (bookId) =>
   EXTERNAL_API.get(`/books/${bookId}`);
 
 export const fetchExternalTextByUrl = (url) =>
-  axios.get(url);
+  API.get(`/api/stories/external/proxy?url=${encodeURIComponent(url)}`);

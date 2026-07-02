@@ -15,7 +15,8 @@ const {createStory,
         getPublicStoryById,
         updateStory,
         uploadStoryImage,
-        exportStoryPDF
+        exportStoryPDF,
+        proxyExternalText
     } = require("../controllers/storyController");
 
 router.post("/",authMiddleware,createStory);
@@ -29,6 +30,8 @@ router.get("/my/published", authMiddleware, getMyPublishedStories);
 router.patch("/:storyId/publish",authMiddleware,publishToggleStory);
 
 router.get("/:storyId/export/pdf",exportStoryPDF);
+
+router.get("/external/proxy", proxyExternalText);
 
 router.get("/published", getPublicPublishedStories);
 

@@ -548,6 +548,31 @@ const uploadStoryImage = async (req, res) => {
   }
 };
 
+const proxyExternalText = async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ message: "URL is required" });
+
+    // Project Gutenberg heavily filters bot traffic. We must provide a standard browser User-Agent.
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      }
+    });
+    if (!response.ok) {
+      return res.status(response.status).json({ message: "Failed to fetch external content" });
+    }
+
+    const text = await response.text();
+    res.status(200).send(text);
+  } catch (err) {
+    console.error("PROXY ERROR:", err);
+    res.status(500).json({ message: "Failed to proxy external request", error: err.message });
+  }
+};
+
 module.exports = {
   createStory,
   addCollaborator,
@@ -563,4 +588,5 @@ module.exports = {
   updateStory,
   uploadStoryImage,
   exportStoryPDF,
+  proxyExternalText,
 };

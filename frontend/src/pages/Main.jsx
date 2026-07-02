@@ -40,7 +40,7 @@ function Main() {
         console.time("External Stories Load");
         const externalPromise = getExternalStories(1);
 
-        const [internalRes, externalRes] = await Promise.all([
+        const [internalRes, externalRes] = await Promise.allSettled([
           internalPromise,
           externalPromise,
         ]);
@@ -49,13 +49,25 @@ function Main() {
         console.timeEnd("External Stories Load");
         console.timeEnd("Total Initial Load");
 
-        const newInternal = internalRes.data?.stories || [];
-        setInternalStories(newInternal);
-        setInternalHasMore(newInternal.length === 20);
+        if (internalRes.status === "fulfilled") {
+          const newInternal = internalRes.value.data?.stories || [];
+          setInternalStories(newInternal);
+          setInternalHasMore(newInternal.length === 20);
+        } else {
+          console.error("Failed to load internal stories:", internalRes.reason);
+          setInternalStories([]);
+          setInternalHasMore(false);
+        }
 
-        const newExternal = externalRes.data?.results || [];
-        setExternalStories(newExternal);
-        setExternalHasMore(!!externalRes.data?.next);
+        if (externalRes.status === "fulfilled") {
+          const newExternal = externalRes.value.data?.results || [];
+          setExternalStories(newExternal);
+          setExternalHasMore(!!externalRes.value.data?.next);
+        } else {
+          console.warn("Failed to load external stories:", externalRes.reason);
+          setExternalStories([]);
+          setExternalHasMore(false);
+        }
 
       } catch (err) {
         console.error("Initial fetch error:", err);
