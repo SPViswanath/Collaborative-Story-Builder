@@ -41,7 +41,9 @@ function StoryCard({
     source === "internal" &&
     loggedInUserId &&
     story?.author &&
-    story.author.toString() === loggedInUserId.toString();
+    (story.author._id
+      ? story.author._id.toString() === loggedInUserId.toString()
+      : story.author.toString() === loggedInUserId.toString());
 
   const handleCardClick = () => {
     if(isPublishedSection){
@@ -142,8 +144,11 @@ function StoryCard({
       {/* ✅ Bottom section SMALLER in desktop */}
       <div className="px-3 py-2 md:py-0 flex items-center gap-2 md:h-12 flex-1 relative">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-700 line-clamp-1 leading-4">
-            {title}
+          <p className="text-sm font-semibold text-gray-700 line-clamp-1 leading-4 flex items-center gap-1">
+            <span className="truncate">{title}</span>
+            {mode === "dashboard" && isAuthor && (
+              <span className="text-[10px] font-normal text-gray-400 shrink-0">(author)</span>
+            )}
           </p>
           {/* ✅ Show author name for internal stories in main mode */}
           {mode === "main" && source === "internal" && story?.author?.name && (

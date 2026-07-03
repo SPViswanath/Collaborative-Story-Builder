@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
 
-  // ✅ Restore auth on page refresh
+  // ✅ Restore auth on page refresh and listen for global auth errors
   useEffect(() => {
     let isMounted = true;
 
@@ -38,8 +38,16 @@ export function AuthProvider({ children }) {
 
     checkAuth();
 
+    const handleAuthError = () => {
+      setIsAuthenticated(false);
+      setUser(null);
+    };
+
+    window.addEventListener("auth-error", handleAuthError);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("auth-error", handleAuthError);
     };
   }, []);
 

@@ -4,7 +4,7 @@ const authMiddleware = (req,res,next)=>{
     try{
 
         //1. Format: "Bearer Token"
-        const token = req.cookies.token;
+        const token = req.cookies.accessToken || req.cookies.token;
         if(!token){
             return res.status(401).json({message:"Unauthorized-No Token"});
         }

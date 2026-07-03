@@ -9,6 +9,7 @@ function Login() {
   const { Login, signup, loading, isAuthenticated, googleLoginSuccess } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ function Login() {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
 
   // ✅ Google Button Responsive Width
@@ -67,22 +69,38 @@ function Login() {
 
   const handleGoogleLogin = async (response) => {
     try {
+      setGoogleLoading(true);
       await googleLogin(response.credential);
       await googleLoginSuccess();
       navigate(redirectTo, { replace: true });
     } catch (err) {
       console.error(err);
       setErrorMsg("Google login failed. Try again.");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    if (errorMsg) setErrorMsg("");
+    setForm({
+      ...form,
+      [e.target.name]: e.target.name === "email" ? e.target.value.toLowerCase() : e.target.value,
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+
+    if (isSignup) {
+      if (form.password.length < 6) {
+        return setErrorMsg("Password must be at least 6 characters long.");
+      }
+      if (form.password !== form.confirmPassword) {
+        return setErrorMsg("Passwords do not match.");
+      }
+    }
 
     const action = isSignup ? signup : Login;
     const result = await action(form);
@@ -93,8 +111,8 @@ function Login() {
   };
 
   return (
-    <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-gray-50 px-2 sm:px-4 py-2 sm:py-8 overflow-hidden">
-      <div className="w-full max-w-md flex flex-col justify-center h-full sm:h-auto">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-gray-50 px-2 sm:px-4 py-6 sm:py-8 overflow-y-auto">
+      <div className="w-full max-w-md flex flex-col justify-center h-full sm:h-auto my-auto">
         {/* ✅ Top Heading */}
         <div className="text-center mb-1 sm:mb-4">
           {/* ✅ Logo */}
@@ -156,6 +174,7 @@ function Login() {
                   />
                   <input
                     name="name"
+                    value={form.name}
                     placeholder="Enter your name"
                     onChange={handleChange}
                     required
@@ -176,6 +195,7 @@ function Login() {
                 <input
                   name="email"
                   type="email"
+                  value={form.email}
                   placeholder="Enter your email"
                   autoComplete="email"
                   onChange={handleChange}
@@ -198,6 +218,7 @@ function Login() {
                 <input
                   name="password"
                   type="password"
+                  value={form.password}
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   onChange={handleChange}
@@ -207,14 +228,39 @@ function Login() {
               </div>
             </div>
 
+            {/* Confirm Password */}
+            {isSignup && (
+              <div>
+                <label className="text-[11px] sm:text-sm font-medium text-gray-700 hidden sm:block">
+                  Confirm Password
+                </label>
+                <div className="mt-0 sm:mt-1 relative">
+                  <Lock
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 sm:w-[18px] sm:h-[18px]"
+                  />
+                  <input
+                    name="confirmPassword"
+                    type="password"
+                    value={form.confirmPassword}
+                    placeholder="Confirm your password"
+                    autoComplete="new-password"
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-9 sm:pl-10 pr-3 py-1.5 sm:py-2.5 text-xs sm:text-base rounded-lg sm:rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || googleLoading}
               className="w-full py-1.5 sm:py-2.5 mt-1 sm:mt-1 rounded-lg sm:rounded-xl bg-gray-900 text-white text-xs sm:text-base font-semibold hover:bg-black transition disabled:opacity-80 disabled:cursor-not-allowed flex justify-center items-center gap-2"
             >
-              {loading && <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mx-auto" />}
-              {!loading && (isSignup ? "Sign Up" : "Login")}
+              {(loading || googleLoading) && <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mx-auto" />}
+              {!(loading || googleLoading) && (isSignup ? "Sign Up" : "Login")}
             </button>
           </form>
 
@@ -227,6 +273,7 @@ function Login() {
               onClick={() => {
                 setIsSignup(!isSignup);
                 setErrorMsg("");
+                setForm({ ...form, password: "", confirmPassword: "" });
               }}
             >
               {isSignup ? "Login" : "Sign Up"}

@@ -5,12 +5,50 @@ const { OAuth2Client } = require("google-auth-library");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+/* ================= HELPER ================= */
+const generateTokens = async (res, user) => {
+  const accessToken = jwt.sign(
+    { userId: user._id },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" }
+  );
+
+  const refreshToken = jwt.sign(
+    { userId: user._id },
+    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    path: "/"
+  };
+
+  res.cookie("accessToken", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+  res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+  return { accessToken, refreshToken };
+};
+
 /* ================= SIGNUP ================= */
 const signup = async (req, res) => {
   try {
     const name = req.body.name?.trim();
     const email = req.body.email?.trim().toLowerCase();
     const password = req.body.password?.trim();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -25,18 +63,7 @@ const signup = async (req, res) => {
       password: hashedPassword,
     });
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    await generateTokens(res, user);
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
@@ -55,23 +82,17 @@ const Login = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
+    // ✅ Crash fix for Google-only users
+    if (!user.password) {
+      return res.status(400).json({ message: "Please log in using Google." });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
     
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    await generateTokens(res, user);
 
     res.status(200).json({ message: "Login successful" });
   } catch (err) {
@@ -98,20 +119,12 @@ const googleLogin = async (req, res) => {
         email,
         googleId: sub,
       });
+    } else if (!user.googleId) {
+      user.googleId = sub;
+      await user.save();
     }
 
-    const jwtToken = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.cookie("token", jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    await generateTokens(res, user);
 
     res.status(200).json({ message: "Google login successful" });
   } catch (err) {
@@ -133,4 +146,54 @@ const getMe = async (req, res) => {
   });
 };
 
-module.exports = { signup, Login, googleLogin, getMe };
+/* ================= REFRESH TOKEN ================= */
+const refreshToken = async (req, res) => {
+  try {
+    const rfToken = req.cookies.refreshToken;
+    if (!rfToken) return res.status(401).json({ message: "Unauthorized - No refresh token" });
+
+    const decoded = jwt.verify(rfToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
+    
+    const user = await User.findById(decoded.userId);
+    if (!user || user.refreshToken !== rfToken) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    await generateTokens(res, user);
+
+    res.status(200).json({ message: "Token refreshed successfully" });
+  } catch (err) {
+    return res.status(403).json({ message: "Invalid or expired refresh token" });
+  }
+};
+
+/* ================= LOGOUT ================= */
+const logout = async (req, res) => {
+  try {
+    const rfToken = req.cookies.refreshToken;
+    if (rfToken) {
+       const user = await User.findOne({ refreshToken: rfToken });
+       if (user) {
+         user.refreshToken = null;
+         await user.save();
+       }
+    }
+    
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      path: "/",
+    };
+
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
+    res.clearCookie("token", cookieOptions); // clean up old token if present
+
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Logout failed", error: err.message });
+  }
+};
+
+module.exports = { signup, Login, googleLogin, getMe, refreshToken, logout };
