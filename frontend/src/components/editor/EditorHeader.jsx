@@ -43,8 +43,8 @@ function EditorHeader({
           ☰
         </button>
 
-        <div className="flex flex-col">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex flex-col ml-4">
+          <h2 className="text-3xl font-medium text-gray-900">
             {storyTitle || "Story"}
           </h2>
 

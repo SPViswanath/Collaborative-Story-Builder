@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { lockChapter, unlockChapter } from "../../api/chapterApi";
+import { useAuth } from "../../context/AuthContext";
 
-function MetaPanel({ chapterDetails,onRefresh }) {
+function MetaPanel({ chapterDetails,onRefresh }){
   const [lockLoading, setLockLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const { user } = useAuth();
 
   const createdBy = chapterDetails?.createdBy?.name || "-";
   const lastEditedBy = chapterDetails?.lastEditedBy?.name || "-";
@@ -35,10 +37,12 @@ function MetaPanel({ chapterDetails,onRefresh }) {
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-white">
-      <p className="text-sm font-semibold text-gray-900 mb-3">Chapter Info</p>
-
-      <div className="space-y-2">
+    <div className="border border-gray-200 rounded-lg bg-white overflow-hidden shadow-sm">
+      <div className="bg-[#a3b8aa] px-4 py-3">
+        <p className="text-sm font-medium text-gray-900">Chapter Details</p>
+      </div>
+      <div className="p-4">
+        <div className="space-y-2">
         <p className="text-sm text-gray-700">
           Created By: <span className="font-medium">{createdBy}</span>
         </p>
@@ -61,12 +65,11 @@ function MetaPanel({ chapterDetails,onRefresh }) {
         )}
       </div>
 
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        
-
+      <div className="mt-4 pt-4">
         {msg && (
           <p className="text-xs text-gray-500 mt-2 text-center">{msg}</p>
         )}
+      </div>
       </div>
     </div>
   );

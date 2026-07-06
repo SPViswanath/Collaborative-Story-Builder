@@ -115,7 +115,7 @@ function EditorLayout({ storyId }) {
             className={`
               fixed md:static top-16 md:top-auto left-0 z-50
               h-[calc(100vh-4rem)]
-              bg-white border-r border-gray-200
+              bg-[#dae4db] border-r border-gray-200
               transition-all duration-300 ease-in-out
               ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
               md:translate-x-0
@@ -157,7 +157,7 @@ function EditorLayout({ storyId }) {
           {/* ✅ MAIN */}
           <section className="flex-1 h-full overflow-hidden flex flex-col bg-gray-50">
             {/* Header */}
-            <div className="shrink-0 border-b border-gray-200 bg-white">
+            <div className="shrink-0 pt-4 px-2">
               <EditorHeader
                 storyId={storyId}
                 storyTitle={storyTitle}

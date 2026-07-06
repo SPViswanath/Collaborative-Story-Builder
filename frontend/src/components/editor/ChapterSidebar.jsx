@@ -112,7 +112,6 @@ function ChapterSidebar({
 
   const loadSidebar = async () => {
     try {
-      setLoading(true);
       const res = await getChapterSidebar(storyId);
       const list = res.data.chapters || [];
       setChapters(list);
@@ -126,6 +125,8 @@ function ChapterSidebar({
 
   useEffect(() => {
     if (!storyId) return;
+    setLoading(true);
+    setChapters([]);
     loadSidebar();
   }, [storyId]);
 
@@ -175,24 +176,23 @@ function ChapterSidebar({
       {/* ✅ Desktop collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-4 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-900 hover:bg-gray-50 shadow-sm transition-colors z-50"
+        className="absolute -right-3 top-10 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-900 hover:bg-gray-50 shadow-sm transition-colors z-50"
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
       {/* ✅ Desktop header */}
-      <div className="hidden md:flex items-center justify-between px-3 pt-4 pb-2">
+      <div className="hidden md:flex items-center justify-between px-4 pt-4 pb-4 bg-[#3a4454]">
         {!collapsed && (
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900 break-words">
-              {storyTitle}
+            <h3 className="text-sm font-medium text-white break-words">
+              Chapter List
             </h3>
-            <p className="text-xs text-gray-500">Chapter List</p>
           </div>
         )}
 
         {!collapsed && (
           <button
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors text-xl font-semibold"
+            className="p-1 rounded-md hover:bg-gray-600 transition-colors text-white text-lg font-medium"
             title="Create chapter"
             onClick={() => setOpenCreateChapter(true)}
           >
@@ -200,6 +200,13 @@ function ChapterSidebar({
           </button>
         )}
       </div>
+
+      {/* ✅ Story title (root node style) */}
+      {!collapsed && (
+        <div className="px-3 py-3 flex items-center text-gray-800 text-sm font-medium">
+          <span className="mr-2 text-xs">v</span> {storyTitle}
+        </div>
+      )}
       {/* ✅ Scrollable list */}
       <div className="flex-1 overflow-y-auto px-2 pb-4">
         {collapsed ? (
@@ -257,14 +264,14 @@ function ChapterSidebar({
                       } : undefined}
                       className={`
                         group w-full flex items-center justify-between
-                        ${collapsed ? "px-2 justify-center cursor-default" : "px-3"}
-                        py-2.5 rounded-lg border transition
+                        ${collapsed ? "px-2 justify-center cursor-default" : "px-6"}
+                        py-2 rounded-none transition
                         ${
                           selectedChapter?._id === ch._id
-                            ? "bg-gray-100 text-gray-900 border-gray-300"
+                            ? "bg-[#c3d1be] text-gray-900 border-l-4 border-gray-600"
                             : collapsed
-                              ? "bg-white text-gray-700 border-gray-200"
-                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
+                              ? "bg-transparent text-gray-700"
+                              : "bg-transparent text-gray-700 hover:bg-[#c9d5ca] border-l-4 border-transparent"
                         }
                       `}
                       title={collapsed ? ch.title : undefined}
@@ -390,11 +397,11 @@ function ChapterSidebar({
                             }}
                             className={`
                               group w-full flex items-center justify-between
-                              px-3 py-2 rounded-md border text-sm transition
+                              px-8 py-2 rounded-none text-sm transition
                               ${
                                 selectedChapter?._id === b._id
-                                  ? "bg-gray-100 text-gray-900 border-gray-300"
-                                  : "bg-white border-gray-200 hover:bg-gray-100"
+                                  ? "bg-[#c3d1be] text-gray-900 border-l-4 border-gray-600"
+                                  : "bg-transparent text-gray-700 hover:bg-[#c9d5ca] border-l-4 border-transparent"
                               }
                             `}
                           >
