@@ -34,7 +34,7 @@ function setupSocket(server) {
 
       const cookies = cookie.parse(rawCookie);
 
-      const token = cookies.token;
+      const token = cookies.accessToken || cookies.token;
       if (!token) return next(new Error("No token cookie"));
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -75,107 +75,128 @@ function setupSocket(server) {
       socket.join(`story:${storyId}`);
     });
 
+    // ✅ Serialize lock/unlock operations per chapter to prevent DB race conditions
+    const chapterOperations = new Map();
+    const runSerialized = (chapterId, fn) => {
+      const prev = chapterOperations.get(chapterId) || Promise.resolve();
+      const next = prev.then(fn).catch(err => console.log("Serialized op error:", err));
+      chapterOperations.set(chapterId, next);
+    };
+
     // ✅ LOCK (owner-based lock + heartbeat safe)
-    socket.on("chapter:lock", async ({ storyId, chapterId }) => {
-      try {
-        if (!storyId || !chapterId) return;
+    socket.on("chapter:lock", ({ storyId, chapterId }) => {
+      console.log(`➡️ Received chapter:lock for chapter ${chapterId} from socket ${socket.id}`);
+      if (!storyId || !chapterId) return;
+      
+      runSerialized(chapterId, async () => {
+        try {
+          const chapter = await Chapter.findById(chapterId).populate("lockedBy", "name");
+          if (!chapter) {
+             console.log(`❌ Chapter ${chapterId} not found`);
+             return;
+          }
 
-        const chapter = await Chapter.findById(chapterId).populate("lockedBy", "name");
-        if (!chapter) return;
+          const now = new Date();
+          const myUserId = socket.user.userId.toString();
 
-        const now = new Date();
-        const myUserId = socket.user.userId.toString();
+          // ✅ If chapter is already locked
+          if (chapter.isLocked) {
+            const lockedById = chapter.lockedBy?._id
+              ? chapter.lockedBy._id.toString()
+              : chapter.lockedBy?.toString();
 
-        // ✅ If chapter is already locked
-        if (chapter.isLocked) {
-          const lockedById = chapter.lockedBy?._id
-            ? chapter.lockedBy._id.toString()
-            : chapter.lockedBy?.toString();
+            // ✅ If lock expired -> clear it
+            if (chapter.lockExpiresAt && chapter.lockExpiresAt <= now) {
+              console.log(`🔓 Lock expired for chapter ${chapterId}, clearing...`);
+              chapter.isLocked = false;
+              chapter.lockedBy = null;
+              chapter.lockedSocketId = null;
+              chapter.lockExpiresAt = null;
+            } else {
+              // ✅ Lock still active
 
-          // ✅ If lock expired -> clear it
-          if (chapter.lockExpiresAt && chapter.lockExpiresAt <= now) {
-            chapter.isLocked = false;
-            chapter.lockedBy = null;
-            chapter.lockedSocketId = null;
-            chapter.lockExpiresAt = null;
-          } else {
-            // ✅ Lock still active
+              // ✅ Same USER refreshing / reconnecting -> allow and renew
+              if (lockedById === myUserId) {
+                console.log(`🔄 Renewing lock for user ${myUserId} on chapter ${chapterId}`);
+                chapter.lockedSocketId = socket.id;
+                chapter.lockExpiresAt = new Date(now.getTime() + LOCK_TTL_MS);
+                await chapter.save();
 
-            // ✅ Same USER refreshing / reconnecting -> allow and renew
-            if (lockedById === myUserId) {
-              chapter.lockedSocketId = socket.id;
-              chapter.lockExpiresAt = new Date(now.getTime() + LOCK_TTL_MS);
-              await chapter.save();
+                const updated = await Chapter.findById(chapterId).populate("lockedBy", "name");
 
-              const updated = await Chapter.findById(chapterId).populate("lockedBy", "name");
+                io.to(`story:${storyId}`).emit("chapter:lockUpdated", {
+                  chapterId,
+                  chapter: updated,
+                });
+                return;
+              }
 
-              io.to(`story:${storyId}`).emit("chapter:lockUpdated", {
+              // ✅ Another user -> deny
+              console.log(`🚫 Lock denied for chapter ${chapterId}, already locked by ${lockedById}`);
+              socket.emit("chapter:lockDenied", {
                 chapterId,
-                chapter: updated,
+                lockedBy: chapter.lockedBy,
               });
               return;
             }
-
-            // ✅ Another user -> deny
-            socket.emit("chapter:lockDenied", {
-              chapterId,
-              lockedBy: chapter.lockedBy,
-            });
-            return;
           }
+
+          // ✅ Acquire lock (new lock)
+          console.log(`🔒 Acquiring new lock for user ${myUserId} on chapter ${chapterId}`);
+          chapter.isLocked = true;
+          chapter.lockedBy = socket.user.userId;
+          chapter.lockedSocketId = socket.id;
+          chapter.lockExpiresAt = new Date(now.getTime() + LOCK_TTL_MS);
+          await chapter.save();
+          console.log(`✅ Successfully saved lock to DB for chapter ${chapterId}`);
+
+          const updated = await Chapter.findById(chapterId).populate("lockedBy", "name");
+
+          io.to(`story:${storyId}`).emit("chapter:lockUpdated", {
+            chapterId,
+            chapter: updated,
+          });
+        } catch (err) {
+          console.log("chapter:lock error:", err.message);
         }
-
-        // ✅ Acquire lock (new lock)
-        chapter.isLocked = true;
-        chapter.lockedBy = socket.user.userId;
-        chapter.lockedSocketId = socket.id;
-        chapter.lockExpiresAt = new Date(Date.now() + LOCK_TTL_MS);
-        await chapter.save();
-
-        const updated = await Chapter.findById(chapterId).populate("lockedBy", "name");
-
-        io.to(`story:${storyId}`).emit("chapter:lockUpdated", {
-          chapterId,
-          chapter: updated,
-        });
-      } catch (err) {
-        console.log("chapter:lock error:", err.message);
-      }
+      });
     });
 
 
     // ✅ UNLOCK (only socket owner)
-    socket.on("chapter:unlock", async ({ storyId, chapterId }) => {
-      try {
-        if (!storyId || !chapterId) return;
+    socket.on("chapter:unlock", ({ storyId, chapterId }) => {
+      if (!storyId || !chapterId) return;
 
-        const chapter = await Chapter.findById(chapterId).populate(
-          "lockedBy",
-          "name"
-        );
-        if (!chapter) return;
+      runSerialized(chapterId, async () => {
+        try {
+          const chapter = await Chapter.findById(chapterId).populate(
+            "lockedBy",
+            "name"
+          );
+          if (!chapter) return;
 
-        // ✅ only socket owner unlocks
-        if (chapter.lockedSocketId !== socket.id) return;
+          // ✅ only socket owner unlocks
+          if (chapter.lockedSocketId !== socket.id) return;
 
-        chapter.isLocked = false;
-        chapter.lockedBy = null;
-        chapter.lockedSocketId = null;
-        chapter.lockExpiresAt = null;
-        await chapter.save();
+          chapter.isLocked = false;
+          chapter.lockedBy = null;
+          chapter.lockedSocketId = null;
+          chapter.lockExpiresAt = null;
+          await chapter.save();
 
-        const updated = await Chapter.findById(chapterId).populate(
-          "lockedBy",
-          "name"
-        );
+          const updated = await Chapter.findById(chapterId).populate(
+            "lockedBy",
+            "name"
+          );
 
-        io.to(`story:${storyId}`).emit("chapter:lockUpdated", {
-          chapterId,
-          chapter: updated,
-        });
-      } catch (err) {
-        console.log("chapter:unlock error:", err.message);
-      }
+          io.to(`story:${storyId}`).emit("chapter:lockUpdated", {
+            chapterId,
+            chapter: updated,
+          });
+        } catch (err) {
+          console.log("chapter:unlock error:", err.message);
+        }
+      });
     });
 
     socket.on("disconnect", async () => {
@@ -185,14 +206,14 @@ function setupSocket(server) {
           const userId = socket.user?.userId?.toString();
           if (!userId) return;
 
-          // ✅ unlock all chapters locked by this user
+          // ✅ unlock all chapters locked by this socket
           const lockedChapters = await Chapter.find({
             isLocked: true,
-            lockedBy: userId,
+            lockedSocketId: socket.id,
           });
 
           await Chapter.updateMany(
-            { isLocked: true, lockedBy: userId },
+            { isLocked: true, lockedSocketId: socket.id },
             { $set: { isLocked: false, lockedBy: null, lockedSocketId: null, lockExpiresAt: null } }
           );
 

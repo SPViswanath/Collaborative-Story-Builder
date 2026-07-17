@@ -64,6 +64,7 @@ function TextEditor({
 
   // ✅ Load chapter content (REST API)
   useEffect(() => {
+    let isActive = true;
     async function loadContent() {
       if (!selectedChapter?._id) return;
 
@@ -72,17 +73,37 @@ function TextEditor({
 
       try {
         const res = await getChapterContent(selectedChapter._id);
+        if (!isActive) return;
+
         setContent(res.data.chapter?.content || "");
-        setChapterDetails?.(res.data.chapter || null);
+        setChapterDetails?.((prev) => {
+          if (!prev || prev._id !== res.data.chapter?._id) {
+            return res.data.chapter || null;
+          }
+
+          // Prevent REST API from overwriting a real-time socket lock
+          // If socket already updated to locked, but API returns false, keep the lock
+          const keepSocketLock = prev.isLocked === true && res.data.chapter?.isLocked === false;
+
+          return {
+            ...(res.data.chapter || {}),
+            isLocked: keepSocketLock ? prev.isLocked : res.data.chapter?.isLocked,
+            lockedBy: keepSocketLock ? prev.lockedBy : res.data.chapter?.lockedBy,
+          };
+        });
       } catch (err) {
+        if (!isActive) return;
         console.error(err.response?.data || err.message);
         setMsg("Failed to load chapter content");
       } finally {
-        setLoading(false);
+        if (isActive) setLoading(false);
       }
     }
 
     loadContent();
+    return () => {
+      isActive = false;
+    };
   }, [selectedChapter?._id, setChapterDetails]);
 
   // ✅ Lock current chapter + unlock previous (switching chapters)
@@ -189,6 +210,14 @@ function TextEditor({
     const onLockDenied = ({ chapterId, lockedBy }) => {
       if (selectedChapter?._id !== chapterId) return;
       setMsg(`Locked by ${lockedBy?.name || "another user"}`);
+      setChapterDetails?.((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          isLocked: true,
+          lockedBy: lockedBy,
+        };
+      });
     };
 
     socket.on("chapter:lockUpdated", onLockUpdated);

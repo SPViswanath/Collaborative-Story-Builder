@@ -85,7 +85,20 @@ const getChapterSidebar = async (req, res) => {
       .populate("lockedBy", "_id name")
       .sort({ order: 1 });
 
-    res.status(200).json({ chapters });
+    const now = new Date();
+    const processedChapters = chapters.map(ch => {
+      const chapterObj = ch.toObject();
+      if (chapterObj.isLocked && chapterObj.lockExpiresAt && chapterObj.lockExpiresAt <= now) {
+        chapterObj.isLocked = false;
+        chapterObj.lockedBy = null;
+        chapterObj.lockExpiresAt = null;
+        // Optionally update DB asynchronously without waiting
+        Chapter.updateOne({ _id: ch._id }, { $set: { isLocked: false, lockedBy: null, lockedAt: null, lockExpiresAt: null } }).catch(console.error);
+      }
+      return chapterObj;
+    });
+
+    res.status(200).json({ chapters: processedChapters });
   } catch (err) {
     res.status(500).json({
       message: "Failed to load chapter sidebar",

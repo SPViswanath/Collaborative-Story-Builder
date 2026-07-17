@@ -38,39 +38,34 @@ function MetaPanel({ chapterDetails,onRefresh }){
 
   return (
     <div className="border border-gray-200 rounded-lg bg-white overflow-hidden shadow-sm">
-      <div className="bg-[#a3b8aa] px-4 py-3">
-        <p className="text-sm font-medium text-gray-900">Chapter Details</p>
-      </div>
-      <div className="p-4">
-        <div className="space-y-2">
-        <p className="text-sm text-gray-700">
-          Created By: <span className="font-medium">{createdBy}</span>
-        </p>
+          <div className="bg-[#a3b8aa] px-4 py-3">
+            <p className="text-sm font-medium text-gray-900">Chapter Details</p>
+          </div>
+          <div className="p-4">
+            <div className="space-y-2">
+            <p className="text-sm text-gray-700">
+              Created By: <span className="font-medium">{createdBy}</span>
+            </p>
 
-        <p className="text-sm text-gray-700">
-          Last Edited By: <span className="font-medium">{lastEditedBy}</span>
-        </p>
+            <p className="text-sm text-gray-700">
+              Last Edited By: <span className="font-medium">{lastEditedBy}</span>
+            </p>
 
-        <p className="text-sm text-gray-700">
-          Status:{" "}
-          <span className="font-medium">
-            {isLocked ? "Locked" : "Unlocked"}
-          </span>
-        </p>
+            <p className="text-sm text-gray-700">
+              Status:{" "}
+              <span className="font-medium">
+                {isLocked ? "Locked" : "Unlocked"}
+              </span>
+            </p>
 
-        {isLocked && (
-          <p className="text-sm text-gray-700">
-            Locked By: <span className="font-medium">{lockedBy}</span>
-          </p>
-        )}
-      </div>
-
-      <div className="mt-4 pt-4">
-        {msg && (
-          <p className="text-xs text-gray-500 mt-2 text-center">{msg}</p>
-        )}
-      </div>
-      </div>
+            {isLocked && (
+              <p className="text-sm text-gray-700">
+                Locked By: <span className="font-medium">{lockedBy}</span>
+              </p>
+            )}
+            
+          </div>
+        </div>
     </div>
   );
 }

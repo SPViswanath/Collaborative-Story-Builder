@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import * as authApi from "../api/authApi";
 import axios from "axios";
-
+import API from "../api/api";
 const AuthContext = createContext();
 
 // ✅ Single source of truth for backend URL
@@ -18,9 +18,7 @@ export function AuthProvider({ children }) {
 
     async function checkAuth() {
       try {
-        const res = await axios.get(`${API_BASE}/api/auth/me`, {
-          withCredentials: true,
-        });
+        const res = await API.get('/api/auth/me');
 
         if (isMounted) {
           setIsAuthenticated(true);
@@ -57,9 +55,7 @@ export function AuthProvider({ children }) {
     try {
       await authApi.login(data);
 
-      const res = await axios.get(`${API_BASE}/api/auth/me`, {
-        withCredentials: true,
-      });
+      const res = await API.get('/api/auth/me');
 
       setUser({ ...res.data, id: res.data.userId });
       console.log("Logged in user:", user);
@@ -81,9 +77,7 @@ export function AuthProvider({ children }) {
     try {
       await authApi.signup(data);
 
-      const res = await axios.get(`${API_BASE}/api/auth/me`, {
-        withCredentials: true,
-      });
+      const res = await API.get('/api/auth/me');
 
       setUser({ ...res.data, id: res.data.userId });
       setIsAuthenticated(true);
@@ -102,9 +96,7 @@ export function AuthProvider({ children }) {
   const googleLoginSuccess = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/api/auth/me`, {
-        withCredentials: true,
-      });
+      const res = await API.get('/api/auth/me');
 
       setUser({ ...res.data, id: res.data.userId });
       setIsAuthenticated(true);
